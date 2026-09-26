@@ -33,6 +33,44 @@ describe("finance summary", () => {
 
   it("does not combine incomplete or mixed-currency sites", () => {
     expect(combineSites([summarizeSite(base), summarizeSite({ ...base, siteId: "site-2", currency: "USD" })]).contribution).toBeNull();
-    expect(combineSites([summarizeSite(base), summarizeSite({ ...base, siteId: "site-2", stale: true })]).contribution).toBeNull();
+    const partial = combineSites([summarizeSite(base), summarizeSite({ ...base, siteId: "site-2", stale: true })]);
+    expect(partial.contribution).toBeNull();
+    expect(partial.coveredSiteCount).toBe(1);
+    expect(partial.selectedSiteCount).toBe(2);
+    expect(partial.coveredContribution).toBe(500);
+  });
+
+  it("explains source-backed supply and repeat-repair flags with record links", () => {
+    const site = summarizeSite({ ...base,
+      approvedOperational: { ...base.approvedOperational, supplies: 6500, approvedHours: null } },
+    { priorSupplyCost: 73.05, currentSupplyCount: 1,
+      currentSupplyClaimId: "claim-supply", repeatRepair: {
+        assetId: "asset-repair", repairCount: 2, totalCost: 218.11, latestThisMonth: true },
+      timeException: { entryId: "time-1", count: 1, code: "missing_checkout" } });
+    expect(site.flags.find(flag => flag.code === "supply-spike-v1")).toMatchObject({
+      observed: 6500, baseline: 73.05, sampleSize: 1,
+      sourceType: "expense_claim", sourceId: "claim-supply", href: "/finance/expenses#claim-supply" });
+    expect(site.flags.find(flag => flag.code === "repeat-repair-v1")).toMatchObject({
+      observed: 2, baseline: 1, sourceType: "equipment_asset", href: "/equipment/asset-repair" });
+    expect(site.flags.find(flag => flag.code === "time-exception-v1")?.href)
+      .toBe("/finance/time?siteId=site-1#time-1");
+    expect(site.approvedOperational.approvedHours).toBeNull();
+  });
+
+  it("does not call new spend a month-over-month spike without a baseline", () => {
+    expect(summarizeSite({ ...base,
+      approvedOperational: { ...base.approvedOperational, supplies: 6500 } },
+    { priorSupplyCost: 0, currentSupplyCount: 1, currentSupplyClaimId: "claim-supply" })
+      .flags.some(flag => flag.code === "supply-spike-v1")).toBe(false);
+  });
+
+  it("uses the versioned supply boundary and suppresses mixed-currency comparisons", () => {
+    const signals = { priorSupplyCost: 75, currentSupplyCount: 1, currentSupplyClaimId: "claim-supply" };
+    const supplyFlag = (cost: number, currency = "CAD") => summarizeSite({ ...base,
+      approvedOperational: { ...base.approvedOperational, supplies: cost, currency } }, signals)
+      .flags.some(flag => flag.code === "supply-spike-v1");
+    expect(supplyFlag(149.99)).toBe(false);
+    expect(supplyFlag(150)).toBe(true);
+    expect(supplyFlag(150, "USD")).toBe(false);
   });
 });

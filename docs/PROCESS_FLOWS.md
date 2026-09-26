@@ -418,3 +418,21 @@ repeat repair without creating a second cost for either invoice. The generated e
 records request amounts, closing stock and source invoice amounts; `demo:assert` queries the
 persisted rows. Local reset deletes these source rows after registry and organization checks.
 Hosted version 9 reset is intentionally disabled pending separate exact-scope approval.
+
+## CLEAN-021 manager overview and exception review
+
+An authorized manager chooses a site or all granted sites and a calendar month. The server
+queries contract expectations, accepted accounting aggregates, period coverage, operational
+expense claims/postings, approved time and equipment repair links inside the authenticated
+organization/site boundary. The summary service calculates direct contribution only when a
+complete current accepted month is closed; it never adds operational postings to accepted
+accounting costs again. All-site contribution remains N/A when any selected site is incomplete.
+A labelled covered-site subtotal uses only complete sites and cannot be mistaken for an all-site
+result. Expense per approved hour is N/A without a positive approved-hour denominator.
+
+Versioned source rules produce review prompts with observed value, baseline, period, sample
+size and owning record link. A manager opens the source, decides an owner/state and records a
+reason. The server action recomputes the still-active prompt, then RLS and a trigger validate
+site/source scope, derive the actor and append review history. Snoozing or resolving a prompt
+changes only the review record; it does not alter a contract, expense, repair, time entry or
+finance period. The prompt remains a human review cue, not a finding of misconduct.

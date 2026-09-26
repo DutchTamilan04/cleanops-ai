@@ -1731,6 +1731,15 @@ a:focus-visible {
 .financeMetricGrid span { display: block; color: var(--muted); font-size: .72rem; font-weight: 700; text-transform: uppercase; }
 .financeMetricGrid strong { display: block; margin-top: 4px; font-size: 1.05rem; overflow-wrap: anywhere; }
 .financeMetricGrid > p { grid-column: 1 / -1; margin: 0; color: var(--muted); font-size: .8rem; }
+.financeComparisonScroll { max-width: 100%; overflow-x: auto; margin: 18px 0; }
+.financeComparison { width: 100%; min-width: 850px; border-collapse: collapse; font-size: .85rem; }
+.financeComparison caption { text-align: left; color: var(--muted); padding-bottom: 8px; }
+.financeComparison th, .financeComparison td { text-align: left; padding: 10px; border-bottom: 1px solid var(--border); }
+.financeComparison thead th { background: #f7fafb; }
+.financeExceptionForm { display: flex; flex-wrap: wrap; align-items: end; gap: 10px; padding: 10px 0 18px; }
+.financeExceptionForm label { display: grid; gap: 5px; min-width: 170px; font-size: .8rem; }
+.financeExceptionForm select, .financeExceptionForm textarea { min-height: 38px; padding: 7px; border: 1px solid var(--border); border-radius: 6px; font: inherit; }
+.financeExceptionForm textarea { min-width: min(300px, 100%); min-height: 60px; }
 .financeImportPreview { margin-top: 18px; padding-top: 4px; border-top: 1px solid var(--border); }
 .importIssue { margin: 8px 0 0; color: #725412; font-size: .84rem; }
 .importIssueError { color: #a12727; }
