@@ -11,7 +11,8 @@ type DraftItem = { itemId:string;packCount:string;baseUnitsPerPack:string;priceP
 const blankItem = ():DraftItem=>({itemId:"",packCount:"1",baseUnitsPerPack:"1",pricePerPack:"0",
   priceSource:"manual_estimate",priceReference:""});
 const money = (value:number)=>new Intl.NumberFormat("en-CA",{style:"currency",currency:"CAD"}).format(value);
-const date = (value:string)=>new Date(value).toLocaleString("en-CA",{dateStyle:"medium",timeStyle:"short"});
+const date = (value:string)=>new Date(value).toLocaleString("en-CA",{
+  dateStyle:"medium",timeStyle:"short",timeZone:"America/Vancouver"});
 
 export function SupplyWorkspaceView({workspace,sites,siteId,month,role,userId}:{
   workspace:SupplyWorkspace;sites:AccessSite[];siteId:string;month:string;role:AppRole;userId:string;
