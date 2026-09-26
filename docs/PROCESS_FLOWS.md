@@ -405,3 +405,16 @@ updated as IDs are created and marked `ready` only after source-backed assertion
 remain `partial`. A reset reads the database registry, verifies all organization-scoped source
 IDs and absence of unrelated rows, then deletes only that synthetic organization in dependency
 order. Hosted reset requires the exact project database connection and never runs from a browser.
+
+Version 9 adds the released supply and equipment workflows to this replay. A site supervisor
+submits a supply request with an idempotency key; an assigned Area Manager approves and orders it;
+the supervisor receives stock and records any opening/issue movements. A Director links the
+receipt to one approved expense posting, leaving request, order and stock issue out of the
+financial cost ledger. A Director approves a synthetic equipment checklist; a supervisor records
+healthy and follow-up inspections, links a fault report to an asset, and triages it. An Area
+Manager requests/completes maintenance; a Director links each repair to an existing approved
+posting and independently approves return to service. Two reports on the same asset demonstrate
+repeat repair without creating a second cost for either invoice. The generated expected manifest
+records request amounts, closing stock and source invoice amounts; `demo:assert` queries the
+persisted rows. Local reset deletes these source rows after registry and organization checks.
+Hosted version 9 reset is intentionally disabled pending separate exact-scope approval.
