@@ -5,11 +5,13 @@ import type { AppAccessContext } from "@/services/access-context";
 import { financeReviewRulesV1, summarizeSite, type SiteFinanceSummary } from "@/services/finance-summary";
 import { optionalFinanceRows } from "@/services/finance-schema-availability";
 
-const expectation = z.object({ site_id: z.uuid(), service_period: z.string(), amount: z.coerce.number(), currency: z.string() });
+const expectation = z.object({ site_id: z.uuid(), contract_version_id: z.uuid(),
+  service_period: z.string(), amount: z.coerce.number(), currency: z.string() });
+const contractVersionRef = z.object({ id: z.uuid(), contract_id: z.uuid(), site_id: z.uuid() });
 const actual = z.object({ site_id: z.uuid(), service_period: z.string(), currency: z.string(),
   recognized_revenue: z.coerce.number(), direct_labour: z.coerce.number(), supplies: z.coerce.number(),
   repairs: z.coerce.number(), other_direct_cost: z.coerce.number(), completeness: z.string() });
-const periodSite = z.object({ site_id: z.uuid(), period_start: z.string(), currency: z.string(),
+const periodSite = z.object({ period_id: z.uuid(), site_id: z.uuid(), period_start: z.string(), currency: z.string(),
   state: z.string(), coverage: z.string(), unmatched_amount: z.coerce.number(),
   unallocated_source_amount: z.coerce.number(), stale: z.boolean() });
 const intake = z.object({ id: z.uuid(), site_id: z.uuid().nullable(), review_state: z.string() });
@@ -67,7 +69,7 @@ export async function getFinanceSummary(client: SupabaseClient, access: AppAcces
   lookback.setUTCMonth(lookback.getUTCMonth() - (financeReviewRulesV1.repeatRepair.lookbackMonths - 1));
   const [expectations, actuals, periods, intakes, claims, labour, time, repairLinks, reviewResult, supplyRequests] = await Promise.all([
     all((from, to) => client.from("contract_revenue_expectations")
-      .select("site_id,service_period,amount,currency").eq("organization_id", access.organizationId)
+      .select("site_id,contract_version_id,service_period,amount,currency").eq("organization_id", access.organizationId)
       .in("site_id", siteIds).eq("service_period", `${month}-01`).eq("is_current", true).range(from, to), expectation),
     all((from, to) => client.from("finance_reconciliations")
       .select("site_id,service_period,currency,recognized_revenue,direct_labour,supplies,repairs,other_direct_cost,completeness")
@@ -98,6 +100,10 @@ export async function getFinanceSummary(client: SupabaseClient, access: AppAcces
       .eq("organization_id", access.organizationId).in("site_id", siteIds)
       .gte("created_at", `${month}-01`).lt("created_at", exclusiveEnd).range(from, to), supplyRequest),
   ]);
+  const contractVersionIds = [...new Set(expectations.map(row => row.contract_version_id))];
+  const contractVersions = contractVersionIds.length ? await all((from, to) => client.from("contract_versions")
+    .select("id,contract_id,site_id").eq("organization_id", access.organizationId)
+    .in("site_id", siteIds).in("id", contractVersionIds).range(from, to), contractVersionRef) : [];
   const reviews = reviewResult.rows;
   const claimIds = claims.map(row => row.id);
   const postings = (await Promise.all(Array.from({ length: Math.ceil(claimIds.length / 100) }, (_, index) =>
@@ -113,6 +119,9 @@ export async function getFinanceSummary(client: SupabaseClient, access: AppAcces
   const postingById = new Map(postings.map(row => [row.id, row]));
   return access.sites.map(site => {
     const expected = expectations.filter(row => row.site_id === site.id);
+    const expectedVersionIds = new Set(expected.map(row => row.contract_version_id));
+    const expectedContractIds = [...new Set(contractVersions.filter(row => row.site_id === site.id
+      && expectedVersionIds.has(row.id)).map(row => row.contract_id))];
     const siteActuals = actuals.filter(row => row.site_id === site.id);
     const currencies = new Set([...expected.map(row => row.currency), ...siteActuals.map(row => row.currency)]);
     const mismatch = currencies.size > 1 || siteActuals.length > 1;
@@ -152,7 +161,8 @@ export async function getFinanceSummary(client: SupabaseClient, access: AppAcces
     const pendingIntake = intakes.find(row => row.site_id === site.id
       && !["posted", "rejected"].includes(row.review_state));
     const exceptions = siteTime.filter(row => row.exception_code);
-    const summary = summarizeSite({ siteId: site.id, siteName: site.name, period: month, currency,
+    const summary = summarizeSite({ siteId: site.id, siteName: site.name, period: month,
+      periodId: period?.period_id ?? null, currency,
       expectedRevenue: expected.length && !mismatch ? expected.reduce((sum, row) => sum + row.amount, 0) : null,
       recognizedRevenue: actualRow?.recognized_revenue ?? null,
       labour: actualRow?.direct_labour ?? null, supplies: actualRow?.supplies ?? null,
@@ -174,6 +184,7 @@ export async function getFinanceSummary(client: SupabaseClient, access: AppAcces
         currency: operationalCurrency,
       },
     }, { priorSupplyCost: priorSupplies.reduce((sum, row) => sum + row.amount, 0),
+      revenueContractId: expectedContractIds.length === 1 ? expectedContractIds[0] : undefined,
       currentSupplyCount: currentSupplies.length,
       currentSupplyClaimId: currentSupply?.claim_id,
       pendingIntakeId: pendingIntake?.id,

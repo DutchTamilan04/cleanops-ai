@@ -64,6 +64,21 @@ describe("finance summary", () => {
       .flags.some(flag => flag.code === "supply-spike-v1")).toBe(false);
   });
 
+  it("opens the matching accounting period for stale and unmatched review prompts", () => {
+    const periodId = "b51b0da7-6b91-4b22-91cd-25532d5b30e7";
+    const site = summarizeSite({ ...base, periodId, stale: true, unmatchedAmount: 803.18 });
+    for (const code of ["stale-close-v1", "unmatched-cost-v1"]) {
+      expect(site.flags.find(flag => flag.code === code)?.href)
+        .toBe(`/finance/reconciliation?periodId=${periodId}`);
+    }
+  });
+
+  it("opens a source contract when a revenue variance has one identified contract", () => {
+    const site = summarizeSite(base, { revenueContractId: "contract-1" });
+    expect(site.flags.find(flag => flag.code === "revenue-variance-v1")?.href)
+      .toBe("/finance/contracts/contract-1/review");
+  });
+
   it("uses the versioned supply boundary and suppresses mixed-currency comparisons", () => {
     const signals = { priorSupplyCost: 75, currentSupplyCount: 1, currentSupplyClaimId: "claim-supply" };
     const supplyFlag = (cost: number, currency = "CAD") => summarizeSite({ ...base,

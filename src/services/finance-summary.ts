@@ -19,6 +19,7 @@ export type FinanceFlag = {
 
 export type FinanceSourceSignals = {
   priorSupplyCost?: number; currentSupplyCount?: number; currentSupplyClaimId?: string;
+  revenueContractId?: string;
   pendingIntakeId?: string;
   repeatRepair?: { assetId: string; repairCount: number; totalCost: number; latestThisMonth: boolean };
   timeException?: { entryId: string; count: number; code: string };
@@ -28,6 +29,7 @@ export type SiteFinanceSummary = {
   siteId: string;
   siteName: string;
   period: string;
+  periodId?: string | null;
   currency: string;
   expectedRevenue: number | null;
   recognizedRevenue: number | null;
@@ -70,12 +72,15 @@ export function summarizeSite(input: Omit<SiteFinanceSummary, "contribution" | "
     observed: number, baseline: number | null, unit: FinanceFlag["unit"], sampleSize: number): FinanceFlag =>
     ({ code, label, detail, href, observed, baseline, unit, sampleSize,
       period: input.period, sourceType: "site", sourceId: input.siteId });
+  const reconciliationHref = input.periodId
+    ? `/finance/reconciliation?periodId=${encodeURIComponent(input.periodId)}`
+    : "/finance/reconciliation";
   if (input.stale) flags.push(siteFlag("stale-close-v1", "Closed period needs review",
-    "Accepted sources changed after close.", "/finance/reconciliation", 1, 0, "count", 1));
+    "Accepted sources changed after close.", reconciliationHref, 1, 0, "count", 1));
   if (input.unmatchedAmount !== null && input.unmatchedAmount > 0)
     flags.push(siteFlag("unmatched-cost-v1", "Unmatched operational cost",
       `${input.currency} ${input.unmatchedAmount.toFixed(2)} requires reconciliation.`,
-      "/finance/reconciliation", input.unmatchedAmount, 0, "money", 1));
+      reconciliationHref, input.unmatchedAmount, 0, "money", 1));
   if (input.pendingExpenseCount > 0) flags.push({ ...siteFlag("pending-intake-v1",
     "Finance intake needs review", `${input.pendingExpenseCount} candidate(s) await resolution.`,
     `/finance/inbox?siteId=${input.siteId}${signals.pendingIntakeId ? `#${signals.pendingIntakeId}` : ""}`,
@@ -88,7 +93,8 @@ export function summarizeSite(input: Omit<SiteFinanceSummary, "contribution" | "
       input.expectedRevenue * financeReviewRulesV1.revenueVariance.expectedFraction))
     flags.push(siteFlag("revenue-variance-v1", "Expected and recognized revenue differ",
       `Expected ${input.currency} ${input.expectedRevenue.toFixed(2)}; recognized ${input.currency} ${input.recognizedRevenue.toFixed(2)}. Check contract and accounting sources.`,
-      "/finance/contracts", Math.abs(input.expectedRevenue - input.recognizedRevenue),
+      signals.revenueContractId ? `/finance/contracts/${encodeURIComponent(signals.revenueContractId)}/review` : "/finance/contracts",
+      Math.abs(input.expectedRevenue - input.recognizedRevenue),
       Math.max(financeReviewRulesV1.revenueVariance.minimumAmount,
         input.expectedRevenue * financeReviewRulesV1.revenueVariance.expectedFraction), "money", 2));
   if (signals.priorSupplyCost !== undefined && signals.priorSupplyCost > 0
