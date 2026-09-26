@@ -131,6 +131,10 @@ try {
     &&unrelatedJob.data.lease_owner===null,
   "Finance scenario touched another organization's pending message job.");
   run("assert", "finance-showcase");
+  const presenter = run("presenter", "finance-showcase");
+  assert(presenter.includes("requested CAD 420.00") && presenter.includes("requested CAD 6500.00")
+    && presenter.includes("SYNTH-REPAIR-001") && presenter.includes("SYNTH-REPAIR-002"),
+  "Generated presenter guide lost supply or repeat-repair source controls.");
   const financeExpected = JSON.parse(await readFile("fixtures/generated/finance-showcase/expected.json", "utf8"));
   const financeReceipts = JSON.parse(await readFile("fixtures/generated/finance-showcase/expense-receipts.json", "utf8"));
   const financeSource = JSON.parse(await readFile("fixtures/scenarios/finance-showcase/scenario.json", "utf8"));
@@ -163,11 +167,55 @@ try {
   if (projectRows.error) throw projectRows.error;
   assert(projectRows.data.length === 2 && projectRows.data.some(row => row.state === "completed"),
     "Synthetic project completion did not persist.");
+  const supplyRequests = await client.from("supply_requests")
+    .select("id,request_key,state").eq("organization_id", financePlan.organization.id);
+  if (supplyRequests.error) throw supplyRequests.error;
+  assert(supplyRequests.data.length === 2
+    && supplyRequests.data.some(row => row.state === "received")
+    && supplyRequests.data.some(row => row.state === "partially_received"),
+  "Normal and partial supply requests did not replay through approvals and receipts.");
+  const stock = await client.from("inventory_transactions")
+    .select("site_id,transaction_type,quantity,movement_key")
+    .eq("organization_id", financePlan.organization.id);
+  if (stock.error) throw stock.error;
+  const normalStock = stock.data.filter(row => row.site_id === financePlan.sites[0].id);
+  assert(stock.data.length === 4 && normalStock.reduce((sum, row) => sum +
+    (row.transaction_type === "issue" ? -Number(row.quantity) : Number(row.quantity)), 0) === 130,
+  "Opening 24 + received 12 - issued 10 five-litre packs did not close at 26 packs.");
+  const supplyLinks = await client.from("supply_expense_links")
+    .select("receipt_id,expense_posting_id").eq("organization_id", financePlan.organization.id);
+  if (supplyLinks.error) throw supplyLinks.error;
+  assert(supplyLinks.data.length === 2 && new Set(supplyLinks.data.map(row => row.expense_posting_id)).size === 2,
+    "Supply receipt links duplicated or lost an approved cost source.");
+  const inspections = await client.from("equipment_inspections")
+    .select("asset_id,outcome").eq("organization_id", financePlan.organization.id);
+  if (inspections.error) throw inspections.error;
+  assert(inspections.data.length === 2
+    && inspections.data.some(row => row.asset_id === financePlan.equipmentCases.healthyAsset.id && row.outcome === "care_ok")
+    && inspections.data.some(row => row.asset_id === financePlan.equipmentCases.repairAsset.id && row.outcome === "follow_up_required"),
+  "Healthy and follow-up equipment inspections did not replay.");
+  const repairLinks = await client.from("equipment_repair_cost_links")
+    .select("id,asset_id,expense_posting_id,invoice_reference")
+    .eq("organization_id", financePlan.organization.id);
+  if (repairLinks.error) throw repairLinks.error;
+  assert(repairLinks.data.length === 2
+    && repairLinks.data.every(row => row.asset_id === financePlan.equipmentCases.repairAsset.id)
+    && new Set(repairLinks.data.map(row => row.expense_posting_id)).size === 2,
+  "Repeat repairs did not retain two distinct approved invoice sources on one asset.");
+  const resetScopeV9 = JSON.parse(run("reset-preflight", "finance-showcase"));
+  assert(resetScopeV9.scopeVerified && resetScopeV9.runId === financePlan.runId,
+    "Version 9 supply/equipment reset preflight did not verify the exact run.");
+  const deletedRepairLink = await client.from("equipment_repair_cost_links").delete()
+    .eq("id", repairLinks.data[0].id).eq("organization_id", financePlan.organization.id);
+  if (deletedRepairLink.error) throw deletedRepairLink.error;
+  let repairAssertionFailed = false;
+  try { run("assert", "finance-showcase"); } catch { repairAssertionFailed = true; }
+  assert(repairAssertionFailed, "Scenario assertion did not catch a missing repair source link.");
   run("reset", "finance-showcase");
   financeCreated = false;
   assert(await count("sites", financePlan.organization.id) === 0,
     "Finance scenario tenant remained after reset.");
-  console.log("Scenario CLI integration passed: base, contracts, expenses, time, projects, source totals, reset and tenant isolation.");
+  console.log("Scenario CLI integration passed: base, contracts, expenses, time, projects, reconciliation, supplies, equipment, source totals, reset and tenant isolation.");
 } finally {
   if (created) {
     try { run("reset", scenarioName); } catch { console.error(`Manual cleanup may be needed: npm run demo:reset -- ${scenarioName}`); }
