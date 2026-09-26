@@ -42,7 +42,8 @@ export type SiteFinanceSummary = {
   stale: boolean;
   unmatchedAmount: number | null;
   pendingExpenseCount: number;
-  pendingSupplyRequestCount?: number;
+  pendingSupplyRequestCount?: number | null;
+  equipmentReviewAvailable?: boolean;
   reviewAvailable?: boolean;
   approvedOperational: {
     labour: number | null;

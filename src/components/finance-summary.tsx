@@ -72,6 +72,7 @@ export function FinanceSummary({ sites, selectedSiteId, month }: {
         </div>
         {site.approvedOperational.assetReview > 0 && <p className="recordNote">{amount(site.approvedOperational.assetReview, site.approvedOperational.currency ?? site.currency)} equipment purchases await accounting/asset treatment and are excluded from direct cost.</p>}
         <p className="recordNote">{site.pendingExpenseCount} finance intake item(s) created this month awaiting resolution. {site.pendingSupplyRequestCount ?? "N/A"} supply request(s) created this month still pending or partially received. {site.unmatchedAmount === null ? "Reconciliation period not opened." : `${amount(site.unmatchedAmount, site.currency)} operational cost unmatched.`}</p>
+        {site.equipmentReviewAvailable === false && <p className="recordNote">Asset repair history: N/A until the equipment migration is released. Repeat-repair prompts are unavailable.</p>}
         <p className="recordNote">Staffing coverage and notice acknowledgements: N/A for this finance period until period-scoped sources are connected. No green status is inferred.</p>
         {site.flags.length > 0 && <div aria-label={`${site.siteName} review prompts`}>
           <h4>Review prompts</h4>

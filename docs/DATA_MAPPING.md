@@ -329,6 +329,8 @@ These postings do not mutate CLEAN-020 `finance_reconciliations`; #66 owns accou
 
 `reviewFinanceException` re-authenticates, validates the submitted key with Zod, recomputes the active site prompt, then upserts `finance_exception_reviews`. RLS and a database trigger independently enforce finance site access, source-site identity, authenticated ownership and immutable prompt scope; an append-only event records a changed review state/note/owner. The table is an optional read while the new migration rolls out; the UI disables review controls until it exists. Review state does not edit the financial source or make an incomplete period complete.
 
+During a staged schema rollout, the supply request and equipment repair-link reads are optional too. A missing table (`PGRST205`/`42P01`) yields N/A for pending supply requests and an explicit unavailable repair-history note. Permission errors and malformed data still fail the finance load; missing review history does not silently become a zero count.
+
 ## /finance/contracts — manual contract setup and review
 
 `/finance/contracts` lists only contracts at sites in `getAppAccessContext`. Director and assigned Area Manager can open `/finance/contracts/new`; Operations Manager sees the operational register/review but never queries `contract_financial_terms` or expected revenue. `create_manual_contract` derives client and organization from the authorized site. Each wizard section writes its normalized draft row before moving on; reload reads the saved version and children. `/finance/contracts/[id]/review` reads the latest version with organization/site filters, displays unresolved terms, and calls the Director-only preview RPC immediately before activation.

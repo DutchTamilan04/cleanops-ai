@@ -65,7 +65,7 @@ export async function getFinanceSummary(client: SupabaseClient, access: AppAcces
   const previousStart = previousMonth.toISOString().slice(0, 10);
   const lookback = new Date(`${month}-01T00:00:00Z`);
   lookback.setUTCMonth(lookback.getUTCMonth() - (financeReviewRulesV1.repeatRepair.lookbackMonths - 1));
-  const [expectations, actuals, periods, intakes, claims, labour, time, repairLinks, reviewResult, supplyRequests] = await Promise.all([
+  const [expectations, actuals, periods, intakes, claims, labour, time, repairLinkResult, reviewResult, supplyRequestResult] = await Promise.all([
     all((from, to) => client.from("contract_revenue_expectations")
       .select("site_id,service_period,amount,currency").eq("organization_id", access.organizationId)
       .in("site_id", siteIds).eq("service_period", `${month}-01`).eq("is_current", true).range(from, to), expectation),
@@ -87,17 +87,19 @@ export async function getFinanceSummary(client: SupabaseClient, access: AppAcces
     all((from, to) => client.from("time_entries").select("id,site_id,hours,state,exception_code")
       .eq("organization_id", access.organizationId).in("site_id", siteIds)
       .gte("work_date", `${month}-01`).lt("work_date", exclusiveEnd).range(from, to), timeEntry),
-    all((from, to) => client.from("equipment_repair_cost_links")
+    optionalAll((from, to) => client.from("equipment_repair_cost_links")
       .select("asset_id,site_id,expense_posting_id")
       .eq("organization_id", access.organizationId).in("site_id", siteIds).range(from, to), repairLink),
     optionalAll((from, to) => client.from("finance_exception_reviews")
       .select("id,site_id,rule_id,source_type,source_id,state,owner_user_id,updated_at")
       .eq("organization_id", access.organizationId).in("site_id", siteIds)
       .eq("period_start", `${month}-01`).range(from, to), review),
-    all((from, to) => client.from("supply_requests").select("site_id,state")
+    optionalAll((from, to) => client.from("supply_requests").select("site_id,state")
       .eq("organization_id", access.organizationId).in("site_id", siteIds)
       .gte("created_at", `${month}-01`).lt("created_at", exclusiveEnd).range(from, to), supplyRequest),
   ]);
+  const repairLinks = repairLinkResult.rows;
+  const supplyRequests = supplyRequestResult.rows;
   const reviews = reviewResult.rows;
   const claimIds = claims.map(row => row.id);
   const postings = (await Promise.all(Array.from({ length: Math.ceil(claimIds.length / 100) }, (_, index) =>
@@ -161,8 +163,9 @@ export async function getFinanceSummary(client: SupabaseClient, access: AppAcces
       periodState: period?.state ?? null, stale: period?.stale ?? false,
       unmatchedAmount: period?.unmatched_amount ?? null,
       pendingExpenseCount: intakes.filter(row => row.site_id === site.id && !["posted", "rejected"].includes(row.review_state)).length,
-      pendingSupplyRequestCount: supplyRequests.filter(row => row.site_id === site.id
-        && !["received", "cancelled", "rejected"].includes(row.state)).length,
+      pendingSupplyRequestCount: supplyRequestResult.available ? supplyRequests.filter(row => row.site_id === site.id
+        && !["received", "cancelled", "rejected"].includes(row.state)).length : null,
+      equipmentReviewAvailable: repairLinkResult.available,
       approvedOperational: {
         labour: access.canEditFinance && siteLabour.length ? siteLabour.reduce((sum, row) => sum + row.total_cost, 0) : null,
         approvedHours: siteTime.some(row => ["approved", "posted"].includes(row.state))
