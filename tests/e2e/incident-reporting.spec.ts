@@ -18,6 +18,9 @@ test("supervisor records events, computes the report and releases only its redac
   await expect(page.getByText("No completed repair claimed")).toBeVisible();
   await expect(page.getByText("reported", { exact: true }).last()).toBeVisible();
   await page.screenshot({ path: "test-results/incidents-equipment-desktop.png", fullPage: true });
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+  await page.screenshot({ path: "test-results/incidents-equipment-mobile.png", fullPage: true });
 
   await page.goto("/reports/client");
   await expect(page.getByRole("heading", { name: "No released report" })).toBeVisible();
