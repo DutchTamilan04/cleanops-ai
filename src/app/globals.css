@@ -1717,17 +1717,16 @@ a:focus-visible {
   border-radius: 10px;
   background: #f4f8fa;
 }
-.recordSummary span,
-.statementCard span,
-.equipmentState span { color: var(--muted); font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+.recordSummary > span,
+.statementCard > span,
+.equipmentState > span:first-child { color: var(--muted); font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
 .statementCard { margin-inline: 0; border-left: 4px solid var(--cyan-500); }
 .statementCard p { margin: 0; color: #283b4c; font-style: normal; line-height: 1.5; }
-.actionRecord { margin: 18px 0; color: #34485b; line-height: 1.5; }
-.completeLine { color: #187347; font-weight: 700; }
+.actionRecord { margin: 18px 0; line-height: 1.5; }
 
 .incidentTimeline { margin: 24px 0 0; padding: 0; list-style: none; }
-.incidentTimeline li { display: grid; grid-template-columns: 48px 12px 1fr; gap: 10px; align-items: start; min-height: 46px; }
-.incidentTimeline time { color: var(--muted); font-size: 0.8rem; }
+.incidentTimeline li { display: grid; grid-template-columns: 78px 12px 1fr; gap: 10px; align-items: start; min-height: 46px; }
+.incidentTimeline time { font-size: 0.8rem; }
 .incidentTimeline li > span { width: 10px; height: 10px; margin-top: 3px; border-radius: 50%; background: var(--cyan-500); box-shadow: 0 0 0 4px var(--cyan-100); }
 .incidentTimeline p { margin: 0; color: #3f5265; font-size: 0.88rem; line-height: 1.4; }
 
@@ -1761,11 +1760,8 @@ a:focus-visible {
 .equipmentAsset div { display: grid; gap: 2px; }
 .equipmentAsset div > strong { font-size: .86rem; }
 .equipmentAsset div > span, .equipmentAsset div > small { color: var(--muted); font-size: .72rem; }
-.equipmentAssetState { padding: var(--v2-space-1) 7px; border-radius: var(--radius-sm); background: var(--status-neutral-bg); color: var(--status-neutral-fg); font-family: var(--font-sans); font-size: 12px; font-weight: 700; text-transform: capitalize; white-space: nowrap; }
-.equipmentAssetState-available { background: var(--status-success-bg); color: var(--status-success-fg); }
-.equipmentAssetState-maintenance_due { background: var(--status-pending-bg); color: var(--status-pending-fg); }
-.equipmentAssetState-out_of_service { background: var(--status-danger-bg); color: var(--status-danger-fg); }
-.equipmentIssueSummary { margin: 8px 0 0; padding: 8px 10px; border-radius: var(--radius-lg); background: var(--status-danger-bg); color: var(--status-danger-fg); font-size: 13px; }
+.equipmentAsset > .ui-statusBadge { flex: 0 0 auto; text-transform: capitalize; }
+.equipmentIssueSummary { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin: 8px 0 0; font-size: 13px; }
 .portfolioEmpty { color: var(--ink-muted); font-size: 13px; }
 
 @media (max-width: 900px) {
@@ -1923,7 +1919,7 @@ a:focus-visible {
   .financeMetricGrid { grid-template-columns: 1fr; }
   .financeImportAccept { align-items: stretch; flex-direction: column; }
   .reportingHeader, .clientReport > header, .releasePanel { flex-direction: column; align-items: stretch; }
-  .recordLabel, .neutralBadge, .releaseBadge { align-self: flex-start; }
+  .recordLabel, .neutralBadge, .releaseBadge, .reportingHeader > .ui-statusBadge { align-self: flex-start; }
   .recordFacts { grid-template-columns: 1fr; }
   .metricDefinition dl { grid-template-columns: 1fr; }
   .reportMetrics { grid-template-columns: 1fr 1fr; }
@@ -2025,6 +2021,12 @@ a:focus-visible {
 .ui-alert-ai { background: var(--status-ai-bg); color: var(--status-ai-fg); }
 .ui-alert-danger { background: var(--status-danger-bg); color: var(--status-danger-fg); }
 .ui-alert-restricted { background: var(--status-neutral-bg); color: var(--status-neutral-fg); }
+
+.ui-alert.recordSummary,
+.ui-alert.boundaryCallout,
+.ui-alert.reportingEmpty { display: grid; }
+.ui-alert.reportingEmpty { justify-items: start; }
+.equipmentState > .ui-statusBadge { justify-self: start; }
 
 .ui-kpiCardGrid {
   display: grid;

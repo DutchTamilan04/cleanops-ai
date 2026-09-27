@@ -1,6 +1,9 @@
 import type { SitePortfolio as SitePortfolioData } from "@/integrations/operations/supabase-site-portfolio";
+import { Alert } from "@/components/ui/alert";
+import { StatusBadge } from "@/components/ui/status-badge";
 
 const stateLabel = (state: string) => state.replaceAll("_", " ");
+const assetTone = (state: string): "success" | "pending" | "danger" | "neutral" => state === "available" ? "success" : state === "maintenance_due" ? "pending" : state === "out_of_service" ? "danger" : "neutral";
 
 export function SitePortfolio({ portfolio }: { portfolio: SitePortfolioData }) {
   const equipmentCount = portfolio.sites.reduce((sum, site) => sum + site.equipment.length, 0);
@@ -21,10 +24,10 @@ export function SitePortfolio({ portfolio }: { portfolio: SitePortfolioData }) {
               {site.equipment.length ? site.equipment.map((asset) => (
                 <div className="equipmentAsset" key={asset.id}>
                   <div><strong>{asset.type}</strong><span>{asset.assetTag}{asset.model ? ` · ${asset.manufacturer ?? ""} ${asset.model}` : ""}</span><small>Condition: {stateLabel(asset.condition)}{asset.nextServiceAt ? ` · service due ${asset.nextServiceAt}` : ""}</small></div>
-                  <span className={`equipmentAssetState equipmentAssetState-${asset.state}`}>{stateLabel(asset.state)}</span>
+                  <StatusBadge tone={assetTone(asset.state)}>{stateLabel(asset.state)}</StatusBadge>
                 </div>
               )) : <p className="portfolioEmpty">No equipment assets recorded.</p>}
-              {site.equipmentReports.map((report) => <p className="equipmentIssueSummary" key={report.id}>Issue: {report.label} · {stateLabel(report.state)}</p>)}
+              {site.equipmentReports.map((report) => <Alert tone="pending" className="equipmentIssueSummary" key={report.id}>Issue: {report.label} <StatusBadge tone="pending">{stateLabel(report.state)}</StatusBadge></Alert>)}
             </div>
           </article>
         ))}

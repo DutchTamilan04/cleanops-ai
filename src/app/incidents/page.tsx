@@ -1,5 +1,6 @@
 import { AppShell } from "@/components/app-shell";
 import { IncidentOperations } from "@/components/incident-operations";
+import { Alert } from "@/components/ui/alert";
 import { getIncidentWorkspace, type IncidentWorkspace } from "@/integrations/reporting/supabase-reporting";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getAppAccessContext, type AppAccessContext } from "@/services/access-context";
@@ -39,7 +40,7 @@ export default async function IncidentsPage() {
     return <AppShell authenticated currentPath="/incidents" role={access.role} roleLabel={access.roleLabel}><section className="accessState"><p className="eyebrow">Incident &amp; equipment desk</p><h1>Incident access restricted</h1><p>This role cannot access incident management.</p></section></AppShell>;
   }
   if (!fixtureAvailable) {
-    return <AppShell authenticated currentPath="/incidents" role={access.role} roleLabel={access.roleLabel}><section className="accessState"><p className="eyebrow">Incident &amp; equipment desk</p><h1>No incident fixture for assigned casinos</h1><p>The current incident walkthrough is seeded only at Grand Villa Casino.</p></section></AppShell>;
+    return <AppShell authenticated currentPath="/incidents" role={access.role} roleLabel={access.roleLabel}><section className="accessState"><p className="eyebrow">Incident &amp; equipment desk</p><h1>No incident fixture for assigned casinos</h1><Alert tone="info">This incident walkthrough is available only at the fixed demo casino, which is outside your assigned sites.</Alert></section></AppShell>;
   }
   return <AppShell authenticated currentPath="/incidents" role={access.role} roleLabel={access.roleLabel}>{workspace ? <IncidentOperations workspace={workspace} /> : null}</AppShell>;
 }
