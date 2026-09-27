@@ -9,6 +9,7 @@ import {
 } from "@/app/mobile/actions";
 import type { MobileWorkspace } from "@/integrations/operations/supabase-operations";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { Alert, Button, StatusBadge } from "@/components/ui";
 
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 const SUPPORTED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
@@ -126,20 +127,20 @@ export function MobileTask({ workspace, demo, actorRole, taskOptions }: { worksp
 
   return (
     <div className="mobileTaskWorkspace">
-      <header className="mobileTaskHeader"><div><p className="eyebrow">Capture attributed to Worker 182 · signed in as {actorRole}</p><h1>Task evidence</h1></div><span className="shiftPill">Synthetic shift</span></header>
-      {notice ? <div className={`mobileNotice ${notice.ok ? "mobileNoticeSuccess" : "mobileNoticeError"}`} role="status">{notice.message}</div> : null}
-      {pending ? <div className="mobileUploadStatus" role="status"><span className="loadingPulse" /> {uploadStatus ?? "Saving securely…"}</div> : null}
+      <header className="mobileTaskHeader"><div><p className="eyebrow">Capture attributed to Worker 182 · signed in as {actorRole}</p><h1>Task evidence</h1></div><StatusBadge tone="info">Synthetic shift</StatusBadge></header>
+      {notice ? <Alert tone={notice.ok ? "success" : "danger"}>{notice.message}</Alert> : null}
+      {pending ? <Alert tone="pending"><span className="loadingPulse" /> {uploadStatus ?? "Saving securely…"}</Alert> : null}
       <nav aria-label="Assigned evidence tasks" className="captureTaskChoices">
         {taskOptions.map((task) => <a key={task.id} href={`/mobile?taskRunId=${task.id}`} aria-current={task.id === workspace.taskId ? "page" : undefined}>{task.zoneName} · {task.taskName}</a>)}
       </nav>
       <section className="mobileTaskCard" aria-labelledby="mobile-task-title">
-        <div className="mobileTaskTop"><span className="taskNumber">01</span><span className={`zoneState zoneState-${workspace.state}`}>{workspace.state.replaceAll("_", " ")}</span></div>
+        <div className="mobileTaskTop"><span className="taskNumber">01</span><StatusBadge tone={workspace.state === "approved" ? "success" : workspace.state === "correction_required" ? "danger" : workspace.state === "in_progress" ? "info" : "pending"}>{workspace.state.replaceAll("_", " ")}</StatusBadge></div>
         <p>{workspace.zoneName}</p><h2 id="mobile-task-title">{workspace.taskName}</h2><span className="taskDue">Due {new Intl.DateTimeFormat("en-CA", { timeZone: "America/Vancouver", hour: "numeric", minute: "2-digit" }).format(new Date(workspace.dueAt))} · Before and after required</span>
         {!workspace.contextSelected ? (
           <div className="qrPrompt">
             <div className="qrGraphic" aria-hidden="true"><span /><span /><span /><span /></div>
             <div><strong>Confirm your work area</strong><p>Scan the zone code to attach photos to this task.</p></div>
-            <button className="mobilePrimaryButton" type="button" disabled={pending || !demo} onClick={() => act({ action: "select_zone", taskRunId: workspace.taskId })}>Select {workspace.zoneName} task</button>
+            <Button variant="navy" type="button" disabled={pending || !demo} onClick={() => act({ action: "select_zone", taskRunId: workspace.taskId })}>Select {workspace.zoneName} task</Button>
             <small>A zone code selects context. It does not check you in or prove identity.</small>
           </div>
         ) : (
@@ -150,7 +151,7 @@ export function MobileTask({ workspace, demo, actorRole, taskOptions }: { worksp
               <div className={workspace.afterReady ? "captureStepComplete" : workspace.beforeReady ? "captureStepActive" : ""}><span>2</span><div><strong>After photo</strong><small>{workspace.afterReady ? "Uploaded and linked" : workspace.beforeReady ? "Ready to capture" : "Available after before photo"}</small></div></div>
             </div>
             {!workspace.afterReady && ["ready", "in_progress", "correction_required"].includes(workspace.state) ? <>
-              <div className="photoPickerActions" data-disabled={pending || !demo}>
+              <div className="photoPickerActions">
                 <input
                   id="mobile-camera-input"
                   ref={cameraInput}
@@ -158,6 +159,7 @@ export function MobileTask({ workspace, demo, actorRole, taskOptions }: { worksp
                   type="file"
                   accept="image/jpeg,image/png,image/webp"
                   capture="environment"
+                  aria-label={`Take ${captureRole} photo`}
                   disabled={pending || !demo}
                   onChange={(event) => chooseFile(event.target.files?.[0])}
                 />
@@ -167,11 +169,12 @@ export function MobileTask({ workspace, demo, actorRole, taskOptions }: { worksp
                   className="visuallyHidden"
                   type="file"
                   accept="image/jpeg,image/png,image/webp"
+                  aria-label={`Choose ${captureRole} photo from library`}
                   disabled={pending || !demo}
                   onChange={(event) => chooseFile(event.target.files?.[0])}
                 />
-                <label className="cameraButton" htmlFor="mobile-camera-input" aria-disabled={pending || !demo}><span className="cameraIcon" aria-hidden="true">●</span>Take {captureRole} photo</label>
-                <label className="photoLibraryButton" htmlFor="mobile-library-input" aria-disabled={pending || !demo}>Choose {captureRole} photo from library</label>
+                <Button variant="navy" type="button" disabled={pending || !demo} onClick={() => cameraInput.current?.click()}><span className="cameraIcon" aria-hidden="true">●</span>Take {captureRole} photo</Button>
+                <Button variant="secondary" type="button" disabled={pending || !demo} onClick={() => libraryInput.current?.click()}>Choose {captureRole} photo from library</Button>
               </div>
               {selectedFile && previewUrl ? (
                 <div className="photoPreview">
@@ -179,8 +182,8 @@ export function MobileTask({ workspace, demo, actorRole, taskOptions }: { worksp
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={previewUrl} alt={`Selected ${captureRole} evidence preview`} />
                   <div><strong>{selectedFile.name}</strong><span>{formatFileSize(selectedFile.size)} · {captureRole} evidence</span></div>
-                  <button className="mobilePrimaryButton" type="button" disabled={pending || !demo} onClick={uploadSelectedFile}>Upload {captureRole} photo</button>
-                  <button className="removePhotoButton" type="button" disabled={pending} onClick={clearSelectedFile}>Choose a different photo</button>
+                  <Button variant="navy" type="button" disabled={pending || !demo} onClick={uploadSelectedFile}>Upload {captureRole} photo</Button>
+                  <Button variant="ghost" type="button" disabled={pending} onClick={clearSelectedFile}>Choose a different photo</Button>
                 </div>
               ) : <p className="photoPickerHelp">JPEG, PNG, or WebP · Maximum 10 MB · Stored privately</p>}
             </> : <div className="submissionComplete"><strong>Submission ready for review</strong><span>Both private photos are linked to the task.</span></div>}
