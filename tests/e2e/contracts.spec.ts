@@ -44,11 +44,18 @@ test("Director saves, reviews and activates a manual fixed monthly contract", as
   await expect(page.getByText("Saved routine obligations: 1")).toBeVisible();
   await page.getByRole("link", { name: "Review saved draft" }).click();
   await expect(page.getByText("fixed monthly: 1234.56 CAD")).toBeVisible();
+  await expect(page.getByText("draft", { exact: true }).first()).toBeVisible();
+  await page.screenshot({ path: "test-results/ui128-contract-director-desktop.png", fullPage: true });
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+  await page.screenshot({ path: "test-results/ui128-contract-director-mobile.png", fullPage: true });
   await page.getByRole("button", { name: "Approve this version" }).click();
   await expect(page.getByRole("heading", { name: "Activation impact preview" })).toBeVisible();
   await expect(page.getByText(/Create 1 tasks, 1 schedules/)).toBeVisible();
+  await page.screenshot({ path: "test-results/ui128-contract-impact-mobile.png", fullPage: true });
   await page.getByRole("button", { name: "Activate approved version" }).click();
   await expect(page.getByText(/version 1 · active/)).toBeVisible();
+  await expect(page.locator(".contractReview .ui-statusBadge-success").first()).toContainText("active");
 });
 
 test("Area Manager drafts only an assigned site and cannot approve", async ({ page }) => {
@@ -56,6 +63,12 @@ test("Area Manager drafts only an assigned site and cannot approve", async ({ pa
   await page.goto("/finance/contracts/new");
   await expect(page.locator('select[name="siteId"] option')).toHaveCount(1);
   await expect(page.locator('select[name="siteId"]')).toHaveValue("40000000-0000-4000-8000-000000000002");
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.getByRole("heading", { name: "New manual contract" })).toBeVisible();
+  await expect(page.getByLabel("Contract code")).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+  await page.screenshot({ path: "test-results/ui128-contract-editor-mobile.png", fullPage: true });
+  await page.setViewportSize({ width: 1440, height: 900 });
   await page.getByLabel("Contract code").fill(`AREA-E2E-${Date.now()}`);
   await page.getByLabel("Contract name").fill("Synthetic assigned site proposal");
   await page.getByRole("button", { name: "Create draft and continue" }).click();
@@ -64,6 +77,10 @@ test("Area Manager drafts only an assigned site and cannot approve", async ({ pa
   await page.getByRole("link", { name: "Review saved draft" }).click();
   await expect(page.getByRole("button", { name: "Approve this version" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Activate approved version" })).toHaveCount(0);
+  await page.screenshot({ path: "test-results/ui128-contract-area-desktop.png", fullPage: true });
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+  await page.screenshot({ path: "test-results/ui128-contract-area-mobile.png", fullPage: true });
 });
 
 test("Director returns a submitted version to the same draft and resubmits it", async ({ page }) => {
@@ -94,4 +111,7 @@ test("Operations Manager reviews obligations without commercial prices", async (
   await expect(page.getByRole("heading", { name: "Service obligations" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Commercial terms" })).toHaveCount(0);
   await expect(page.getByText("1234.56")).toHaveCount(0);
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+  await page.screenshot({ path: "test-results/ui128-contract-operations-mobile.png", fullPage: true });
 });
