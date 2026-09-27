@@ -3,6 +3,7 @@
 import { type ReactNode, useEffect, useState, useTransition } from "react";
 import type { ReviewWorkspace as ReviewWorkspaceData } from "@/integrations/review/supabase-review";
 import { performReviewAction, type ReviewActionState } from "@/app/review/actions";
+import { Alert, Button, KpiCard, KpiCardGrid, StatusBadge } from "@/components/ui";
 
 const auditLabels: Record<string, string> = {
   "quality.recorded": "Mock assessment recorded",
@@ -25,9 +26,9 @@ function ActionButton({
   onClick: () => void;
 }) {
   return (
-    <button className={`reviewButton reviewButton-${tone}`} type="button" disabled={disabled} onClick={onClick}>
+    <Button variant={tone === "primary" ? "navy" : tone === "quiet" ? "ghost" : "secondary"} type="button" disabled={disabled} onClick={onClick}>
       {children}
-    </button>
+    </Button>
   );
 }
 
@@ -77,9 +78,9 @@ function EvidenceCard({ role, evidence }: {
           {evidence ? <span>Submitted by {evidence.submitted_by_user_id ? `authenticated user ${evidence.submitted_by_user_id.slice(0, 8)}` : "synthetic ingress"}</span> : null}
           {evidence?.worker_id ? <span>Attributed worker {evidence.worker_id.slice(0, 8)}</span> : null}
         </div>
-        <span className="privacyLabel">Private</span>
+        <StatusBadge tone="info">Private</StatusBadge>
       </div>
-      {evidence && visibleState !== "loading" ? <button type="button" className="reviewButton reviewButton-quiet" onClick={() => { setState("loading"); setRefresh((value) => value + 1); }}>Refresh image</button> : null}
+      {evidence && visibleState !== "loading" ? <Button variant="ghost" type="button" onClick={() => { setState("loading"); setRefresh((value) => value + 1); }}>Refresh image</Button> : null}
     </article>
   );
 }
@@ -115,18 +116,18 @@ export function ReviewWorkspace({ workspace, demo }: { workspace: ReviewWorkspac
           <h1>Evidence review</h1>
           <p className="reviewLead">Compare the latest submission, decide whether the suggested issue is real, and approve only the current revision.</p>
         </div>
-        <div className={`taskState taskState-${workspace.task.state}`}>{status}</div>
+        <StatusBadge tone={workspace.task.state === "approved" ? "success" : workspace.task.state === "correction_required" ? "danger" : "pending"}>{status}</StatusBadge>
       </header>
 
-      {notice ? <div className={`reviewNotice ${notice.ok ? "reviewNoticeSuccess" : "reviewNoticeError"}`} role="status">{notice.message}</div> : null}
-      {pending ? <div className="reviewProgress" role="status">Updating the review…</div> : null}
+      {notice ? <Alert tone={notice.ok ? "success" : "danger"}>{notice.message}</Alert> : null}
+      {pending ? <Alert tone="pending">Updating the review…</Alert> : null}
 
-      <section className="reviewSummary" aria-label="Task summary">
-        <div><span>Task</span><strong>{workspace.taskName}</strong></div>
-        <div><span>Zone</span><strong>{workspace.zoneName}</strong></div>
-        <div><span>Worker</span><strong>Worker 182 Demo</strong></div>
-        <div><span>Current revision</span><strong>{revision || "—"}</strong></div>
-      </section>
+      <KpiCardGrid ariaLabel="Task summary">
+        <KpiCard label="Task" value={workspace.taskName} />
+        <KpiCard label="Zone" value={workspace.zoneName} />
+        <KpiCard label="Worker" value="Worker 182 Demo" />
+        <KpiCard label="Current revision" value={revision || "—"} />
+      </KpiCardGrid>
 
       {!workspace.pair ? (
         <section className="reviewEmpty" aria-labelledby="prepare-title">
@@ -155,7 +156,7 @@ export function ReviewWorkspace({ workspace, demo }: { workspace: ReviewWorkspac
             <section className="reviewSection qualityPanel" aria-labelledby="quality-title">
               <div className="sectionHeading">
                 <div><p>Decision support</p><h2 id="quality-title">Visual quality</h2></div>
-                <span className="mockLabel">Mock AI</span>
+                <StatusBadge tone="ai">Mock AI</StatusBadge>
               </div>
 
               {!workspace.decision ? (
@@ -167,28 +168,28 @@ export function ReviewWorkspace({ workspace, demo }: { workspace: ReviewWorkspac
                   </div>
                 </div>
               ) : workspace.decision.status === "failed" ? (
-                <div className="manualReviewBox">
+                <Alert tone="restricted" className="manualReviewBox">
                   <strong>Mock AI unavailable</strong>
                   <p>No automated finding was created. Review the pair manually and record your decision.</p>
                   <ActionButton disabled={pending} onClick={() => act({ action: "approve", taskRunId: taskId, revision, decisionId: workspace.decision?.id ?? null, reason: "Supervisor completed manual visual review after mock failure." })}>
                     Approve after manual review
                   </ActionButton>
-                </div>
+                </Alert>
               ) : (
                 <>
                   <div className="scoreRow">
-                    <div className="scoreValue"><strong>{workspace.decision.score}</strong><span>/100</span></div>
+                    <div className="mockScoreCard"><KpiCard label="Mock AI score" value={workspace.decision.score} help="Advisory /100" /></div>
                     <div><strong>{revision > 1 ? "Correction looks ready for review" : "Possible quality issue"}</strong><p>Advisory score only. Supervisor approval is always required.</p></div>
                   </div>
 
                   {workspace.decision.observations.map((observation) => (
                     <article className="suggestionCard" key={observation.criterion_id}>
-                      <div className="suggestionTop"><span>{observation.severity} severity</span><span>Suggested</span></div>
+                      <div className="suggestionTop"><StatusBadge tone="pending">{observation.severity} severity</StatusBadge><StatusBadge tone="ai">Suggested by Mock AI</StatusBadge></div>
                       <h3>{observation.observation}</h3>
                       {correction?.source_revision === revision ? (
-                        <div className="confirmedState"><strong>Finding confirmed</strong><span>{correction.instruction}</span></div>
+                        <Alert tone="pending" className="confirmedState"><div><strong>Finding confirmed by supervisor</strong><span>{correction.instruction}</span></div></Alert>
                       ) : dismissed ? (
-                        <div className="dismissedState">Suggestion dismissed · no finding created</div>
+                        <Alert tone="info" className="dismissedState">Suggestion dismissed by supervisor · no finding created</Alert>
                       ) : (
                         <div className="buttonRow">
                           <ActionButton disabled={pending} onClick={() => act({ action: "confirm", decisionId: workspace.decision!.id, revision, criterionId: observation.criterion_id, instruction: "Re-clean the mirror and submit a corrected AFTER photo." })}>
@@ -203,28 +204,28 @@ export function ReviewWorkspace({ workspace, demo }: { workspace: ReviewWorkspac
                   ))}
 
                   {workspace.decision.observations.length === 0 && workspace.task.state !== "approved" ? (
-                    <div className="approvalCallout">
+                    <Alert tone="pending" className="approvalCallout">
                       <div><strong>No issue suggested</strong><span>Score {workspace.decision.score} still requires your approval.</span></div>
                       <ActionButton disabled={pending} onClick={() => act({ action: "approve", taskRunId: taskId, revision, decisionId: workspace.decision!.id, reason: null })}>Approve revision {revision}</ActionButton>
-                    </div>
+                    </Alert>
                   ) : null}
 
                   {dismissed && workspace.task.state === "submitted" ? (
-                    <div className="approvalCallout">
+                    <Alert tone="pending" className="approvalCallout">
                       <div><strong>Manual decision required</strong><span>The suggestion was dismissed; approve only after checking the evidence.</span></div>
                       <ActionButton disabled={pending} onClick={() => act({ action: "approve", taskRunId: taskId, revision, decisionId: workspace.decision!.id, reason: "Supervisor dismissed the mock suggestion after manual review." })}>Approve after review</ActionButton>
-                    </div>
+                    </Alert>
                   ) : null}
                 </>
               )}
 
-              {workspace.task.state === "approved" ? <div className="approvedBox"><strong>Revision {revision} approved</strong><span>Recorded by the supervisor; this mock score did not auto-approve the task.</span></div> : null}
+              {workspace.task.state === "approved" ? <Alert tone="success" className="approvedBox"><div><strong>Revision {revision} approved</strong><span>Recorded by the supervisor; this mock score did not auto-approve the task.</span></div></Alert> : null}
             </section>
 
             {workspace.task.state === "correction_required" && correction ? (
               <section className="correctionPanel" aria-labelledby="correction-title">
-                <div><p>Corrective action</p><h2 id="correction-title">{correction.instruction}</h2><span>Requested against revision {correction.source_revision}</span></div>
-                <a className="reviewButton reviewButton-primary" href={`/mobile?taskRunId=${taskId}`}>Capture corrected after photo →</a>
+                <Alert tone="danger"><div><p>Corrective action</p><h2 id="correction-title">{correction.instruction}</h2><span>Requested against revision {correction.source_revision}</span></div></Alert>
+                <a className="ui-button ui-button-navy" href={`/mobile?taskRunId=${taskId}`}>Capture corrected after photo →</a>
                 {demo ? <ActionButton tone="secondary" disabled={pending} onClick={() => act({ action: "submit_correction", taskRunId: taskId })}>Use labelled synthetic sample</ActionButton> : null}
               </section>
             ) : null}

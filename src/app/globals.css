@@ -671,28 +671,11 @@ a:focus-visible {
   line-height: 1.55;
 }
 
-.taskState {
-  flex: 0 0 auto;
-  padding: 10px 13px;
-  border: 1px solid #bbd9e2;
-  border-radius: 8px;
-  background: #eef9fb;
-  color: #194c60;
-  font-size: 0.8rem;
-  font-weight: 720;
-}
-
-.taskState-correction_required {
-  border-color: #f2d394;
-  background: #fff8e8;
-  color: #754b05;
-}
-
-.taskState-approved {
-  border-color: #a7d8c4;
-  background: #eefaf5;
-  color: #176044;
-}
+.reviewHeader > .ui-statusBadge { flex: 0 0 auto; }
+.reviewWorkspace > .ui-alert { margin-bottom: 18px; }
+.reviewWorkspace > .ui-kpiCardGrid { margin-bottom: 24px; }
+.reviewWorkspace .ui-kpiCard { min-width: 0; }
+.reviewWorkspace > .ui-kpiCardGrid .ui-kpiCard-value { font-size: 18px; line-height: 26px; overflow-wrap: anywhere; }
 
 .reviewNotice,
 .reviewProgress {
@@ -719,43 +702,6 @@ a:focus-visible {
   border: 1px solid #c8e4e8;
   background: #f2fbfc;
   color: #27576a;
-}
-
-.reviewSummary {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  margin-bottom: 24px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: #fbfdfe;
-}
-
-.reviewSummary > div {
-  min-width: 0;
-  padding: 16px 18px;
-  border-right: 1px solid var(--border);
-}
-
-.reviewSummary > div:last-child {
-  border-right: 0;
-}
-
-.reviewSummary span,
-.reviewSummary strong {
-  display: block;
-}
-
-.reviewSummary span {
-  margin-bottom: 5px;
-  color: var(--muted);
-  font-size: 0.74rem;
-}
-
-.reviewSummary strong {
-  overflow: hidden;
-  font-size: 0.9rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .reviewGrid {
@@ -900,26 +846,8 @@ a:focus-visible {
   color: var(--muted);
   font-size: 0.74rem;
 }
-
-.privacyLabel,
-.mockLabel {
-  border-radius: 999px;
-  font-size: 0.7rem;
-  font-weight: 760;
-}
-
-.privacyLabel {
-  padding: 5px 8px;
-  background: #e9f1f4;
-  color: #315366;
-}
-
-.mockLabel {
-  padding: 7px 10px;
-  border: 1px solid #bfdbdf;
-  background: #edf9fa;
-  color: #155164;
-}
+.evidenceMeta > .ui-statusBadge { flex: 0 0 auto; align-self: flex-start; }
+.evidenceCard > .ui-button { margin: 0 14px 14px; }
 
 .qualityAwaiting,
 .manualReviewBox {
@@ -927,6 +855,7 @@ a:focus-visible {
   border-radius: 9px;
   background: #f6f9fb;
 }
+.reviewWorkspace .manualReviewBox { display: block; }
 
 .qualityAwaiting p,
 .manualReviewBox p,
@@ -951,25 +880,8 @@ a:focus-visible {
   border-bottom: 1px solid var(--border);
 }
 
-.scoreValue {
-  min-width: 98px;
-  padding: 12px 14px;
-  border-radius: 9px;
-  background: var(--navy-900);
-  color: white;
-  text-align: center;
-}
-
-.scoreValue strong {
-  font-size: 2rem;
-  letter-spacing: -0.05em;
-}
-
-.scoreValue span {
-  margin-left: 3px;
-  color: #b9d1df;
-  font-size: 0.8rem;
-}
+.mockScoreCard .ui-kpiCard { min-width: 158px; background: var(--status-ai-bg); border-color: var(--status-ai-fg); }
+.mockScoreCard .ui-kpiCard-value { color: var(--status-ai-fg); }
 
 .scoreRow > div:last-child > strong {
   display: block;
@@ -979,15 +891,17 @@ a:focus-visible {
 .suggestionCard {
   margin-top: 18px;
   padding: 18px;
-  border: 1px solid #ecd9ac;
+  border: 1px solid var(--v2-border);
+  border-left: 4px solid var(--status-ai-fg);
   border-radius: 9px;
-  background: #fffaf0;
+  background: var(--v2-surface);
 }
 
 .suggestionTop {
   display: flex;
   justify-content: space-between;
-  color: #7c570c;
+  gap: 8px;
+  color: var(--ink-muted);
   font-size: 0.7rem;
   font-weight: 760;
   letter-spacing: 0.05em;
@@ -1043,18 +957,6 @@ a:focus-visible {
   color: #3d6173;
 }
 
-.confirmedState,
-.dismissedState,
-.approvedBox {
-  padding: 12px 14px;
-  border-radius: 8px;
-}
-
-.confirmedState {
-  background: #fff0d1;
-  color: #684306;
-}
-
 .confirmedState strong,
 .confirmedState span,
 .approvedBox strong,
@@ -1069,13 +971,6 @@ a:focus-visible {
   line-height: 1.45;
 }
 
-.dismissedState {
-  background: #eef3f5;
-  color: #526676;
-  font-size: 0.82rem;
-  font-weight: 650;
-}
-
 .approvalCallout {
   display: flex;
   align-items: center;
@@ -1083,9 +978,6 @@ a:focus-visible {
   gap: 18px;
   margin-top: 18px;
   padding: 16px;
-  border: 1px solid #a7d8c4;
-  border-radius: 9px;
-  background: #f1fbf7;
 }
 
 .approvalCallout strong,
@@ -1095,16 +987,11 @@ a:focus-visible {
 
 .approvalCallout span {
   margin-top: 4px;
-  color: #48685b;
+  color: inherit;
   font-size: 0.8rem;
 }
 
-.approvedBox {
-  margin-top: 18px;
-  border: 1px solid #8bcbae;
-  background: #e9f8f1;
-  color: #14573f;
-}
+.approvedBox { margin-top: 18px; }
 
 .correctionPanel {
   display: flex;
@@ -1112,14 +999,14 @@ a:focus-visible {
   justify-content: space-between;
   gap: 22px;
   padding: 22px;
-  border-color: #e8ca89;
-  background: #fffbf1;
 }
+.correctionPanel > .ui-alert { flex: 1 1 auto; min-width: 0; }
+.correctionPanel > a.ui-button { flex: 0 0 auto; text-decoration: none; }
 
 .correctionPanel span {
   display: block;
   margin-top: 6px;
-  color: #745b2f;
+  color: inherit;
   font-size: 0.8rem;
 }
 
@@ -1302,20 +1189,8 @@ a:focus-visible {
     flex-direction: column;
   }
 
-  .taskState {
+  .reviewHeader > .ui-statusBadge {
     align-self: flex-start;
-  }
-
-  .reviewSummary {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .reviewSummary > div:nth-child(2) {
-    border-right: 0;
-  }
-
-  .reviewSummary > div:nth-child(-n + 2) {
-    border-bottom: 1px solid var(--border);
   }
 
   .reviewGrid {
@@ -1337,19 +1212,9 @@ a:focus-visible {
 }
 
 @media (max-width: 520px) {
-  .reviewSummary,
   .evidencePair,
   .scoreRow {
     grid-template-columns: 1fr;
-  }
-
-  .reviewSummary > div {
-    border-right: 0;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .reviewSummary > div:last-child {
-    border-bottom: 0;
   }
 
   .reviewSection,
