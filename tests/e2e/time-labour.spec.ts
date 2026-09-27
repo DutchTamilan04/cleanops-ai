@@ -14,6 +14,11 @@ test("Director can reach finance, set a rate, approve project hours, and post on
   await page.getByLabel("Reason").fill("Browser test rate source");
   await page.getByRole("button", { name: "Save rate" }).click();
   await expect(page.getByText("Effective worker cost rate saved with audit history.")).toBeVisible();
+  await page.screenshot({ path: "test-results/ui128-rates-director-desktop.png", fullPage: true });
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+  await page.screenshot({ path: "test-results/ui128-rates-director-mobile.png", fullPage: true });
+  await page.setViewportSize({ width: 1440, height: 900 });
 
   await page.getByRole("link", { name: "Time & labour" }).click();
   await expect(page.getByRole("heading", { name: "Approved time and labour" })).toBeVisible();
@@ -42,6 +47,9 @@ test("Area Manager sees site time without confidential rate controls", async ({ 
   await page.goto("/finance/rates");
   await expect(page.getByText("Confidential Director access is required.")).toBeVisible();
   await expect(page.getByText("Hourly cost CAD")).toHaveCount(0);
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+  await page.screenshot({ path: "test-results/ui128-rates-area-restricted-mobile.png", fullPage: true });
 });
 
 test("Supervisor resolves missing checkout without seeing a worker rate", async ({ page }) => {

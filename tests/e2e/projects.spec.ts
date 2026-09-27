@@ -21,6 +21,11 @@ test("Director activates a one-off project while Area Manager remains site-scope
     await card.getByRole("button", { name: "Approve terms and activate" }).click();
     await expect(card.getByText("$500.00").first()).toBeVisible();
     await expect(card.getByText("Pending complete accounting and cost close")).toBeVisible();
+    await expect(card.locator(".ui-statusBadge-success").first()).toContainText("active");
+    await director.screenshot({ path: "test-results/ui128-project-director-desktop.png", fullPage: true });
+    await director.setViewportSize({ width: 390, height: 844 });
+    expect(await director.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+    await director.screenshot({ path: "test-results/ui128-project-director-mobile.png", fullPage: true });
 
     const area = await browser.newPage();
     try {
@@ -29,6 +34,9 @@ test("Director activates a one-off project while Area Manager remains site-scope
       await expect(area.getByRole("heading", { name: "One-off project profitability" })).toBeVisible();
       await expect(area.getByText(code)).toHaveCount(0);
       await expect(area.getByRole("button", { name: "Approve terms and activate" })).toHaveCount(0);
+      await area.setViewportSize({ width: 390, height: 844 });
+      expect(await area.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+      await area.screenshot({ path: "test-results/ui128-project-area-mobile.png", fullPage: true });
     } finally { await area.close(); }
   } finally {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;

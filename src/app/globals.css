@@ -1772,6 +1772,32 @@ a:focus-visible {
   .contractForm { padding: var(--v2-space-4); }
   .contractRegister > .ui-kpiCardGrid, .contractEditor > .ui-kpiCardGrid, .contractReview > .ui-kpiCardGrid { grid-template-columns: minmax(0, 1fr); }
 }
+.projectPanel { display: grid; gap: var(--v2-space-4); margin-top: var(--v2-space-4); padding: var(--v2-space-5); border: 1px solid var(--v2-border); border-radius: var(--radius-xl); background: var(--v2-surface); }
+.projectPanel > h2, .projectPanel > p { margin: 0; }
+.projectPanel > h2 { font-family: var(--font-display); font-size: 20px; color: var(--ink); }
+.projectFilters { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--v2-space-3); }
+.projectForm { display: grid; gap: var(--v2-space-3); max-width: 720px; padding: var(--v2-space-4); border: 1px solid var(--v2-border); border-radius: var(--radius-lg); background: var(--v2-canvas); }
+.projectForm > .ui-button { justify-self: start; }
+.projectForm > label:not(.ui-field) { display: grid; gap: 6px; font-size: 14px; font-weight: 600; }
+.projectForm textarea { width: 100%; min-height: 96px; padding: 10px 14px; border: 1px solid var(--v2-border-control); border-radius: var(--radius-lg); font: inherit; }
+.projectCard { display: grid; gap: var(--v2-space-4); min-width: 0; padding: var(--v2-space-5); border: 1px solid var(--v2-border); border-radius: var(--radius-xl); }
+.projectCard > h3, .projectCard > p { margin: 0; }
+.projectCard h3 { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--v2-space-2); }
+.projectCard .ui-statusBadge { text-transform: capitalize; }
+.projectDetailMetrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--v2-space-2) var(--v2-space-3); margin: 0; }
+.projectDetailMetrics dt { color: var(--ink-muted); }
+.projectDetailMetrics dd { margin: 0; text-align: right; font-weight: 700; overflow-wrap: anywhere; }
+.projectCard details { min-width: 0; overflow-wrap: anywhere; }
+.projectCard details summary { cursor: pointer; font-weight: 700; }
+.rateHistory { display: grid; gap: var(--v2-space-3); margin: 0; padding: 0; list-style: none; }
+.rateHistory > li { padding: var(--v2-space-4); border: 1px solid var(--v2-border); border-radius: var(--radius-lg); line-height: 1.5; overflow-wrap: anywhere; }
+.rateHistory details { margin-top: var(--v2-space-2); }
+@media (max-width: 600px) {
+  .projectFilters { grid-template-columns: minmax(0, 1fr); }
+  .projectPanel, .projectCard { padding: var(--v2-space-4); }
+  .projectDetailMetrics { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+  .projectDetailMetrics dd { margin-bottom: var(--v2-space-2); text-align: left; }
+}
 .messageQueue { margin-top: 20px; }
 .messageQueueList { display: grid; gap: 14px; }
 .messageQueueItem { display: grid; grid-template-columns: minmax(0, 1fr) minmax(250px, .75fr); gap: 20px; padding: 17px 0; border-top: 1px solid var(--v2-border); }
