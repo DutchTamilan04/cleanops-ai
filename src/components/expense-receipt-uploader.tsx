@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState,useTransition } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { prepareExpenseReceiptUpload,finalizeExpenseReceiptUpload } from "@/app/mobile/expenses/actions";
+import { Alert, Button, TextField } from "@/components/ui";
 
 const accepted=new Set(["image/jpeg","image/png","image/webp","application/pdf"]);
 async function digest(file:File){
@@ -13,7 +14,7 @@ async function digest(file:File){
 export function ExpenseReceiptUploader({intakeId}:{intakeId:string}){
   const router=useRouter();
   const [file,setFile]=useState<File|null>(null);
-  const [notice,setNotice]=useState("");
+  const [notice,setNotice]=useState<{message:string;tone:"pending"|"success"|"danger"}|null>(null);
   const [pending,startTransition]=useTransition();
   function upload(){
     if(!file)return;
@@ -25,19 +26,19 @@ export function ExpenseReceiptUploader({intakeId}:{intakeId:string}){
           byteSize:file.size,sha256:await digest(file)});
         if(!prepared.ok)throw new Error(prepared.message);
         const upload=prepared.upload;
-        setNotice("Uploading private receipt…");
+        setNotice({message:"Uploading private receipt…",tone:"pending"});
         const stored=await createSupabaseBrowserClient().storage.from("expense-receipts")
           .uploadToSignedUrl(upload.path,upload.token,file,{contentType:file.type,upsert:false,cacheControl:"0"});
         if(stored.error)throw new Error("Receipt upload failed.");
         const finalized=await finalizeExpenseReceiptUpload({intakeId,documentId:upload.documentId,
           expiresAt:upload.expiresAt,signature:upload.signature});
         if(!finalized.ok)throw new Error(finalized.message);
-        setFile(null);setNotice(finalized.message);router.refresh();
-      }catch(error){setNotice(error instanceof Error?error.message:"Receipt upload failed.");}
+        setFile(null);setNotice({message:finalized.message,tone:"success"});router.refresh();
+      }catch(error){setNotice({message:error instanceof Error?error.message:"Receipt upload failed.",tone:"danger"});}
     });
   }
-  return <div><label>Receipt file <input type="file" accept=".pdf,image/jpeg,image/png,image/webp"
-    onChange={event=>setFile(event.target.files?.[0]??null)}/></label>
-    <button type="button" disabled={!file||pending} onClick={upload}>Upload receipt</button>
-    {notice&&<p role="status">{notice}</p>}</div>;
+  return <div className="mobileReceiptUpload"><TextField label="Receipt file" type="file" accept=".pdf,image/jpeg,image/png,image/webp"
+    onChange={event=>setFile(event.target.files?.[0]??null)}/>
+    <Button variant="primary" type="button" disabled={!file||pending} onClick={upload}>Upload receipt</Button>
+    {notice&&<Alert tone={notice.tone}>{notice.message}</Alert>}</div>;
 }
