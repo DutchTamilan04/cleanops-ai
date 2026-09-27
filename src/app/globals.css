@@ -1413,8 +1413,6 @@ a:focus-visible {
   line-height: 1.55;
 }
 
-.coverageBadge,
-.shiftPill,
 .recordLabel {
   flex: 0 0 auto;
   border-radius: var(--radius-pill);
@@ -1424,36 +1422,8 @@ a:focus-visible {
   font-weight: 700;
 }
 
-.coverageBadge {
-  border: 1px solid transparent;
-  background: var(--status-pending-bg);
-  color: var(--status-pending-fg);
-}
-
-.coverageBadgeFull {
-  background: var(--status-success-bg);
-  color: var(--status-success-fg);
-}
-
-.opsMetrics {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: var(--v2-space-4);
-  margin-bottom: 22px;
-}
-
-.opsMetrics article {
-  padding: var(--v2-space-5);
-  border: 1px solid var(--v2-border);
-  border-radius: var(--radius-xl);
-  background: var(--v2-surface);
-}
-
-.opsMetrics span,
-.opsMetrics p { color: var(--ink-muted); font-size: 13px; font-weight: 600; }
-.opsMetrics strong { display: block; margin: 7px 0 3px; font-family: var(--font-display); font-size: 24px; line-height: 32px; font-weight: 600; color: var(--ink); letter-spacing: normal; }
-.opsMetrics small { color: var(--ink-muted); font-size: 1rem; }
-.opsMetrics p { margin: 0; }
+.opsHeader > .ui-statusBadge { flex: 0 0 auto; }
+.opsWorkspace > .ui-kpiCardGrid { margin-bottom: 22px; }
 
 .opsGrid {
   display: grid;
@@ -1492,16 +1462,16 @@ a:focus-visible {
 .coverageTimeline small { display: block; }
 .coverageTimeline strong { font-size: .88rem; }
 .coverageTimeline small { margin-top: 3px; color: var(--muted); font-size: .73rem; }
+.coverageTimeline .ui-statusBadge { margin-top: 4px; }
 
 .replacementList { border-top: 1px solid var(--border); }
 .replacementList h3 { margin: 20px 0 10px; font-size: .9rem; }
 .replacementList article { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 13px 0; border-top: 1px solid #edf1f4; }
 .replacementList article:first-of-type { border-top: 0; }
-.replacementList strong,
-.replacementList span { display: block; }
+.replacementList strong { display: block; }
 .replacementList article div > strong { font-size: .85rem; }
-.replacementList article div > span { margin-top: 4px; color: var(--muted); font-size: .73rem; }
-.replacementList .reviewButton { flex: 0 0 auto; }
+.replacementList article div > .ui-statusBadge { display: inline-flex; margin-top: 6px; }
+.replacementList .ui-button { flex: 0 0 auto; }
 .completeMark { width: 34px; height: 34px; display: grid !important; place-items: center; border-radius: 50%; background: #eaf8f1; color: #167052; font-weight: 800; }
 .recordNote { margin: 15px 0 0; padding: 13px; border-radius: 8px; background: #f6f8fa; color: var(--muted); font-size: .73rem; line-height: 1.5; }
 .demoReset { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-top: 22px; padding: 20px 22px; border: 1px solid var(--border); border-radius: 12px; background: #fbfdfe; }
@@ -1520,12 +1490,7 @@ a:focus-visible {
 .zoneSignal-ready,
 .zoneSignal-submitted,
 .zoneSignal-correction_required { background: #e3ad30; }
-.zoneState { padding: 5px 8px; border-radius: 999px; background: #eef2f5; color: #495a6b; font-size: .68rem; font-weight: 730; text-transform: capitalize; }
-.zoneState-in_progress,
-.zoneState-approved { background: #eaf8f1; color: #176044; }
-.zoneState-ready,
-.zoneState-submitted,
-.zoneState-correction_required { background: #fff5df; color: #75500b; }
+.zoneList .ui-statusBadge { justify-self: end; }
 .mobileJourneyLink { display: flex; flex-direction: column; gap: 5px; margin-top: 22px; padding: 16px; border-radius: 9px; background: var(--navy-900); color: white; text-decoration: none; }
 .mobileJourneyLink span { color: #b7d3df; font-size: .72rem; }
 .mobileJourneyLink strong { font-size: .88rem; }
@@ -1538,13 +1503,8 @@ a:focus-visible {
 
 .mobileTaskWorkspace { width: min(560px, 100%); margin: 0 auto; }
 .mobileTaskHeader { align-items: center; }
-.shiftPill { padding: 8px 11px; background: #eaf8f1; color: #176044; }
-.mobileNotice,
-.mobileUploadStatus { margin-bottom: 14px; padding: 13px 14px; border-radius: 9px; font-size: .84rem; line-height: 1.45; }
-.mobileNoticeSuccess { border: 1px solid #a7d8c4; background: #eefaf5; color: #14583f; }
-.mobileNoticeError { border: 1px solid #efb7b1; background: #fff2f0; color: #8a2e27; }
-.mobileUploadStatus { display: flex; align-items: center; gap: 10px; background: #edf8fa; color: #27576a; }
-.mobileUploadStatus .loadingPulse { width: 17px; height: 17px; }
+.mobileTaskWorkspace > .ui-alert { margin-bottom: 14px; }
+.mobileTaskWorkspace > .ui-alert .loadingPulse { width: 17px; height: 17px; margin-right: 8px; vertical-align: middle; }
 .mobileTaskCard { padding: 22px; border: 1px solid #ccdbe2; border-radius: 14px; background: white; box-shadow: 0 16px 38px rgb(20 54 76 / 10%); }
 .mobileTaskTop { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; }
 .taskNumber { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 8px; background: var(--navy-900); color: white; font-size: .72rem; font-weight: 800; }
@@ -1559,11 +1519,7 @@ a:focus-visible {
 .qrPrompt p { margin-top: 4px; color: var(--muted); font-size: .78rem; line-height: 1.4; }
 .qrGraphic { width: 64px; height: 64px; display: grid; grid-template-columns: 1fr 1fr; gap: 5px; padding: 8px; border: 1px solid #b8c9d1; border-radius: 8px; }
 .qrGraphic span { border: 5px solid var(--navy-900); }
-.mobilePrimaryButton,
-.cameraButton { grid-column: 1 / -1; width: 100%; min-height: 50px; display: flex; align-items: center; justify-content: center; border: 0; border-radius: 9px; background: var(--navy-900); color: white; font-weight: 750; cursor: pointer; }
-.mobilePrimaryButton:disabled,
-.photoLibraryButton:disabled,
-.removePhotoButton:disabled { cursor: wait; opacity: .56; }
+.qrPrompt > .ui-button { grid-column: 1 / -1; width: 100%; min-height: 50px; }
 .qrPrompt > small { grid-column: 1 / -1; color: var(--muted); font-size: .7rem; line-height: 1.45; }
 .contextConfirmed { display: flex; align-items: center; gap: 11px; padding: 12px; border-radius: 9px; background: #eaf8f1; }
 .contextConfirmed > span { width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; background: #2f9f78; color: white; font-weight: 800; }
@@ -1582,11 +1538,8 @@ a:focus-visible {
 .captureSteps .captureStepComplete { color: #176044; background: #f0faf5; }
 .captureSteps .captureStepComplete > span { background: #2f9f78; color: white; }
 .photoPickerActions { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
-.photoPickerActions .cameraButton { grid-column: 1 / -1; }
+.photoPickerActions .ui-button { grid-column: 1 / -1; width: 100%; min-height: 46px; }
 .cameraIcon { display: inline-grid; place-items: center; width: 23px; height: 23px; margin-right: 8px; border: 2px solid white; border-radius: 50%; font-size: .6rem; }
-.photoLibraryButton { grid-column: 1 / -1; width: 100%; min-height: 45px; display: flex; align-items: center; justify-content: center; border: 1px solid #9ab3bf; border-radius: 9px; background: white; color: var(--navy-900); font-weight: 730; cursor: pointer; }
-.photoPickerActions[data-disabled="true"] .cameraButton,
-.photoPickerActions[data-disabled="true"] .photoLibraryButton { cursor: wait; opacity: .56; }
 .photoPickerHelp { margin: 10px 0 0; color: var(--muted); font-size: .7rem; line-height: 1.45; text-align: center; }
 .photoPreview { display: grid; grid-template-columns: 72px 1fr; gap: 12px; align-items: center; margin-top: 12px; padding: 12px; border: 1px solid #b8d9dd; border-radius: 10px; background: #f4fbfc; }
 .photoPreview img { width: 72px; height: 72px; border-radius: 8px; object-fit: cover; background: #dfe8ec; }
@@ -1594,8 +1547,7 @@ a:focus-visible {
 .photoPreview span { display: block; min-width: 0; }
 .photoPreview strong { overflow: hidden; font-size: .78rem; text-overflow: ellipsis; white-space: nowrap; }
 .photoPreview span { margin-top: 4px; color: var(--muted); font-size: .68rem; }
-.photoPreview .mobilePrimaryButton { grid-column: 1 / -1; min-height: 46px; }
-.removePhotoButton { grid-column: 1 / -1; padding: 5px; border: 0; background: transparent; color: #356879; font-size: .72rem; text-decoration: underline; cursor: pointer; }
+.photoPreview .ui-button { grid-column: 1 / -1; width: 100%; min-height: 46px; }
 .submissionComplete { padding: 17px; border-radius: 9px; background: var(--navy-900); color: white; }
 .submissionComplete strong,
 .submissionComplete span { display: block; }
@@ -1605,25 +1557,27 @@ a:focus-visible {
 .mobileEmptyState span { display: block; }
 .mobileEmptyState strong { font-size: .82rem; }
 .mobileEmptyState span { margin-top: 5px; color: var(--muted); font-size: .73rem; }
+.mobileExpensePanel { display: grid; gap: 16px; width: min(560px, 100%); margin-top: 16px; }
+.mobileExpensePanel h2,
+.mobileExpensePanel p { margin: 0; }
+.mobileExpensePanel textarea.ui-field-input { min-height: 120px; resize: vertical; }
+.mobileReceiptUpload { display: grid; gap: 12px; }
+.mobileReceiptUpload .ui-field-input[type="file"] { height: auto; padding: 12px; }
 
 @media (max-width: 980px) {
-  .opsMetrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .opsGrid { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 600px) {
   .opsHeader { flex-direction: column; align-items: stretch; }
-  .coverageBadge { align-self: flex-start; }
-  .opsMetrics { grid-template-columns: 1fr 1fr; }
-  .opsMetrics article { padding: 15px; }
-  .opsMetrics strong { font-size: 21px; line-height: 28px; }
+  .opsHeader > .ui-statusBadge { align-self: flex-start; }
   .opsPanel { padding: 17px; }
   .replacementList article { align-items: stretch; flex-direction: column; }
-  .replacementList .reviewButton { width: 100%; }
+  .replacementList .ui-button { width: 100%; }
   .demoReset { flex-direction: column; align-items: stretch; }
-  .demoReset .reviewButton { width: 100%; }
+  .demoReset .ui-button { width: 100%; }
   .zoneList article { grid-template-columns: 9px minmax(0, 1fr); }
-  .zoneList .zoneState { grid-column: 2; justify-self: start; }
+  .zoneList .ui-statusBadge { grid-column: 2; justify-self: start; }
   .mobileTaskCard { padding: 18px; }
 }
 
