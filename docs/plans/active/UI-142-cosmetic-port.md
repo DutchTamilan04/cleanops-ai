@@ -55,13 +55,17 @@ Compatibility adaptations: preserve main's comparison/coverage and exception
 actions; retain complete reconciliation IDs and zero diagnostics; exclude the
 preview's derived "fully matched" summary; make tabs respect existing route
 capabilities; submit the authorized single-site value from a static switcher;
-use semantic table headers/captions and wrap full source IDs on phones.
+use semantic table headers/captions and wrap full source IDs on phones. Reset the
+process-step flex basis in the phone layout so desktop widths do not become large
+vertical gaps. CLI checks confirmed loaded Poppins/Jakarta fonts and no page
+overflow at 1440px and 390px.
 
 The design target contains future components/states; documentation now separates
 the implemented promotion from that target. No new packages or provider claims.
 
 ## Next step
 
-Open the promotion PR to main, wait for application/database/Vercel checks, and
+Promotion [PR #143](https://github.com/niru2015/cleanops-ai/pull/143) targets main.
+Wait for application/database/Vercel checks and
 complete the protected-branch review/merge requirements. Local verification is
 complete; production release is pending.
