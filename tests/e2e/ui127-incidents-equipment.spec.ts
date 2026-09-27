@@ -12,8 +12,21 @@ test("Supervisor sees the incident and equipment fixture as reports on desktop a
     await expect(page.getByRole("heading", { name: "Incident & equipment desk" })).toBeVisible();
     await expect(page.getByText("Cause undetermined", { exact: true })).toBeVisible();
     await expect(page.getByText("Report only", { exact: true })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Record reported incident" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Record scrubber report" })).toBeVisible();
+    // The full CI suite may have recorded the fixed fixture in an earlier test.
+    const recordIncident = page.getByRole("button", { name: "Record reported incident" });
+    if (await recordIncident.count()) {
+      await expect(recordIncident).toBeVisible();
+    } else {
+      await expect(page.getByText("Recorded summary")).toBeVisible();
+      await expect(page.getByRole("list", { name: "Incident timeline" })).toBeVisible();
+    }
+    const recordEquipment = page.getByRole("button", { name: "Record scrubber report" });
+    if (await recordEquipment.count()) {
+      await expect(recordEquipment).toBeVisible();
+    } else {
+      await expect(page.getByText("No completed repair claimed")).toBeVisible();
+      await expect(page.getByText("reported", { exact: true }).last()).toBeVisible();
+    }
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
     await page.screenshot({ path: `test-results/ui127-supervisor-${width}.png`, fullPage: true });
   }
