@@ -52,6 +52,8 @@ Work one issue at a time; use its focused Read list rather than loading the whol
   remain disabled.
 - CLEAN-011: [real mobile photo upload implemented](completed/CLEAN-011.md), replacing the synthetic capture
   control with camera/library selection, private direct upload and verified task linkage.
+- CLEAN-021: [manager finance overview implemented](completed/CLEAN-021.md), with source-backed
+  site comparisons, explicit completeness, site-authorized explained prompts and review history.
 - CLEAN-026: [Make WhatsApp persistence implemented](completed/CLEAN-026.md), a token-scoped endpoint that
   reuses durable ingestion; existing-group capture remains unproven and gated (ADR 002, issue #37).
 - CLEAN-027: [normalized messages and finance implemented](completed/CLEAN-027.md): context/media tables, supplier and
