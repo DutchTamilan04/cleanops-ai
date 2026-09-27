@@ -1715,6 +1715,33 @@ a:focus-visible {
 .financeEditRow .financeFormRow { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
 .financeEditRow label { display: grid; gap: 5px; color: var(--ink); font-family: var(--font-sans); font-size: 13px; font-weight: 600; }
 .financeEditRow select, .financeEditRow input { min-height: 38px; padding: 7px 9px; border: 1px solid var(--v2-border-control); border-radius: var(--radius-md); background: var(--v2-surface); font-family: var(--font-sans); }
+.expenseInbox { display: grid; gap: var(--v2-space-5); }
+.expenseInbox > h2, .expenseInbox > p { margin: 0; }
+.expenseInbox > .reviewCard, .expenseClaimCard { min-width: 0; padding: var(--v2-space-5); border: 1px solid var(--v2-border); border-radius: var(--radius-xl); background: var(--v2-surface); }
+.expenseClaimCard { margin-top: var(--v2-space-4); }
+.expenseInboxHeading, .expenseInboxActions { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--v2-space-3); }
+.expenseInboxHeading h3 { margin: 0; }
+.expenseInboxGroup { display: grid; gap: var(--v2-space-3); margin-top: var(--v2-space-4); padding-top: var(--v2-space-4); border-top: 1px solid var(--v2-border); }
+.expenseInboxGroup h4, .expenseInboxGroup p, .expenseInboxGroup ul { margin: 0; }
+.expenseInboxGroup > .ui-button { justify-self: start; }
+.expenseInboxGroup p, .expenseInboxGroup code, .expenseClaimCard { overflow-wrap: anywhere; }
+.expenseInboxGroup code { white-space: pre-wrap; }
+.expenseInboxSuggestion { min-width: 0; width: 100%; }
+.expenseInboxSuggestion summary { cursor: pointer; font-weight: 700; }
+.expenseInboxSuggestion code { display: block; margin-top: var(--v2-space-2); font-size: 12px; }
+.expenseInbox .financeGrid { gap: var(--v2-space-3); }
+.expenseInbox .financeGrid label { display: grid; gap: 6px; font-size: 14px; font-weight: 600; }
+.expenseInbox .financeGrid input, .expenseInbox .financeGrid select { width: 100%; min-width: 0; min-height: var(--control-height); padding: 0 14px; border: 1px solid var(--v2-border-control); border-radius: var(--radius-lg); background: var(--v2-surface); color: var(--ink); font: inherit; }
+.expenseInbox .financeGrid input:focus, .expenseInbox .financeGrid select:focus { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.expenseInboxActions { justify-content: flex-start; margin-top: var(--v2-space-4); }
+.expenseInboxDecision { margin-bottom: 0; }
+.expenseApproval { display: grid; justify-items: start; gap: var(--v2-space-3); margin-top: var(--v2-space-4); }
+.expenseClaimCard h2 { margin: 0 0 var(--v2-space-4); font-family: var(--font-display); font-size: 20px; line-height: 1.3; color: var(--ink); }
+.expenseClaimCard h3 { margin: var(--v2-space-5) 0 var(--v2-space-2); padding-top: var(--v2-space-4); border-top: 1px solid var(--v2-border); font-size: 15px; color: var(--ink); }
+.expenseClaimCard p { margin: var(--v2-space-2) 0; color: var(--ink-secondary); line-height: 1.5; }
+.expenseClaimCard ul { margin: var(--v2-space-2) 0; padding-left: var(--v2-space-5); color: var(--ink-secondary); }
+.expenseClaimCard li { padding: 4px 0; line-height: 1.5; }
+.expenseClaimCard > .ui-alert { margin: var(--v2-space-3) 0; }
 .messageQueue { margin-top: 20px; }
 .messageQueueList { display: grid; gap: 14px; }
 .messageQueueItem { display: grid; grid-template-columns: minmax(0, 1fr) minmax(250px, .75fr); gap: 20px; padding: 17px 0; border-top: 1px solid var(--v2-border); }
