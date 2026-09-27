@@ -1742,6 +1742,36 @@ a:focus-visible {
 .expenseClaimCard ul { margin: var(--v2-space-2) 0; padding-left: var(--v2-space-5); color: var(--ink-secondary); }
 .expenseClaimCard li { padding: 4px 0; line-height: 1.5; }
 .expenseClaimCard > .ui-alert { margin: var(--v2-space-3) 0; }
+.contractRegister, .contractEditor, .contractReview { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--v2-space-4); margin-top: 0; min-width: 0; }
+.contractRegister > h1, .contractEditor > h1, .contractReview > h1 { margin: 0; }
+.contractRegister > p, .contractEditor > p, .contractReview > p { margin: 0; line-height: 1.5; }
+.contractRegisterList { display: grid; gap: var(--v2-space-3); margin: 0; padding: 0; list-style: none; }
+.contractRegisterItem { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--v2-space-3); min-width: 0; padding: var(--v2-space-4); border: 1px solid var(--v2-border); border-radius: var(--radius-lg); background: var(--v2-surface); }
+.contractRegisterItem > div { min-width: 0; }
+.contractRegisterItem a { font-weight: 700; overflow-wrap: anywhere; }
+.contractRegisterItem p { margin: var(--v2-space-2) 0 0; color: var(--ink-muted); font-size: 13px; }
+.contractRegisterItem > .ui-statusBadge { flex: 0 0 auto; text-transform: capitalize; }
+.contractEditor > .ui-statusBadge { justify-self: start; }
+.contractSteps ol { display: flex; flex-wrap: wrap; gap: var(--v2-space-2); margin: 0; padding: 0; list-style: none; }
+.contractSteps a { display: block; padding: 8px 10px; border-radius: var(--radius-pill); background: var(--v2-canvas); color: var(--ink-secondary); text-decoration: none; font-size: 13px; }
+.contractSteps a[aria-current="step"] { background: var(--brand-blue); color: white; font-weight: 700; }
+.contractForm { display: grid; gap: var(--v2-space-4); max-width: 720px; padding: var(--v2-space-5); border: 1px solid var(--v2-border); border-radius: var(--radius-xl); background: var(--v2-surface); }
+.contractForm > p { margin: 0; }
+.contractForm > .ui-button { justify-self: start; }
+.contractForm > label:not(.ui-field) { display: grid; gap: 6px; font-size: 14px; font-weight: 600; }
+.contractForm textarea, .contractReview textarea { min-height: 90px; width: 100%; padding: 10px 14px; border: 1px solid var(--v2-border-control); border-radius: var(--radius-lg); font: inherit; }
+.contractEditor > ul { display: grid; gap: var(--v2-space-2); margin: 0; padding-left: var(--v2-space-5); }
+.contractEditor > ul li { line-height: 1.5; }
+.contractEditor > ul form { display: inline-block; margin-left: var(--v2-space-2); }
+.contractReview h2 { margin: var(--v2-space-4) 0 0; padding-top: var(--v2-space-4); border-top: 1px solid var(--v2-border); font-size: 19px; }
+.contractReview > ul { margin: 0; padding-left: var(--v2-space-5); line-height: 1.5; }
+.contractReview > form { display: grid; justify-items: start; gap: var(--v2-space-3); max-width: 720px; }
+.contractReview form .ui-field { width: 100%; }
+@media (max-width: 600px) {
+  .contractRegisterItem { flex-direction: column; }
+  .contractForm { padding: var(--v2-space-4); }
+  .contractRegister > .ui-kpiCardGrid, .contractEditor > .ui-kpiCardGrid, .contractReview > .ui-kpiCardGrid { grid-template-columns: minmax(0, 1fr); }
+}
 .messageQueue { margin-top: 20px; }
 .messageQueueList { display: grid; gap: 14px; }
 .messageQueueItem { display: grid; grid-template-columns: minmax(0, 1fr) minmax(250px, .75fr); gap: 20px; padding: 17px 0; border-top: 1px solid var(--v2-border); }
