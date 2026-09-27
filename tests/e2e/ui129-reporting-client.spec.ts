@@ -56,7 +56,8 @@ test("Supervisor release remains a visible gate before the Client sees the redac
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
     await page.screenshot({ path: "test-results/ui129-supervisor-released-mobile.png", fullPage: true });
 
-    await client.reload();
+    await signInAs(client, process.env.CLEANOPS_E2E_CLIENT_EMAIL);
+    await client.goto("/reports/client");
     await expect(client.getByRole("heading", { name: "Aurora Downtown Demo" })).toBeVisible();
     await expect(client.getByText("Client view: released snapshot", { exact: false })).toBeVisible();
     await expect(client.locator(".ui-kpiCard-hero")).toContainText("Approved-on-time completion");
