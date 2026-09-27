@@ -1892,6 +1892,8 @@ a:focus-visible {
 .financeEditRow .financeFormRow { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
 .financeEditRow label { display: grid; gap: 5px; color: var(--ink); font-family: var(--font-sans); font-size: 13px; font-weight: 600; }
 .financeEditRow select, .financeEditRow input { min-height: 38px; padding: 7px 9px; border: 1px solid var(--v2-border-control); border-radius: var(--radius-md); background: var(--v2-surface); font-family: var(--font-sans); }
+.reconciliationCorrection { display: grid; gap: var(--v2-space-2); min-width: 180px; }
+.reconciliationCorrection .ui-button { justify-self: start; }
 .messageQueue { margin-top: 20px; }
 .messageQueueList { display: grid; gap: 14px; }
 .messageQueueItem { display: grid; grid-template-columns: minmax(0, 1fr) minmax(250px, .75fr); gap: 20px; padding: 17px 0; border-top: 1px solid var(--v2-border); }
