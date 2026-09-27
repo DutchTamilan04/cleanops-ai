@@ -36,9 +36,15 @@ test("worker receipt becomes one Director-approved expense with drill-through",a
     const expense=director.locator("article.reviewCard").filter({hasText:vendor}).first();
     await expect(expense.getByText(/Original app message/)).toBeVisible();
     await expect(expense.getByRole("link",{name:"Open original"})).toBeVisible();
+    await expect(expense.locator(".ui-statusBadge-pending").first()).toContainText("submitted");
     await expense.getByRole("button",{name:"Director approve and post"}).click();
     await expect(expense.getByText(/Director approval:/)).toBeVisible();
     await expect(expense.locator("li").filter({hasText:/fuel travel · CAD 42.50/}).first()).toBeVisible();
+    await expect(expense.locator(".ui-statusBadge-success").first()).toContainText("posted");
+    await director.screenshot({path:"test-results/ui128-expense-director-desktop.png",fullPage:true});
+    await director.setViewportSize({width:390,height:844});
+    expect(await director.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth)).toBe(true);
+    await director.screenshot({path:"test-results/ui128-expense-director-mobile.png",fullPage:true});
 
     await page.goto("/mobile/expenses");
     await page.getByLabel("Expense details").fill(`Expense: fuel duplicate; Vendor: ${vendor}; Date: ${date}; Total: CAD $42.50`);
@@ -49,6 +55,9 @@ test("worker receipt becomes one Director-approved expense with drill-through",a
     await director.goto("/finance/inbox");
     const duplicate=director.locator("article.reviewCard").filter({hasText:"Expense: fuel duplicate"}).first();
     await expect(duplicate.getByText(/Exact receipt already posted/)).toBeVisible();
+    await expect(duplicate.locator(".ui-alert-danger")).toContainText("cannot post twice");
+    expect(await director.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth)).toBe(true);
+    await director.screenshot({path:"test-results/ui128-inbox-duplicate-mobile.png",fullPage:true});
   }finally{await directorContext.close();}
 });
 
@@ -67,9 +76,19 @@ test("Area Manager resolves assigned-site context but cannot post missing receip
   await candidate.getByLabel("Payment").selectOption("company_card");
   await candidate.getByLabel("Review reason or correction").fill("Site and amount checked");
   await candidate.getByRole("button",{name:"Save reviewed expense"}).click();
+  await expect(candidate.getByText(/Claim submitted/)).toBeVisible();
+  await page.screenshot({path:"test-results/ui128-inbox-area-desktop.png",fullPage:true});
+  await page.setViewportSize({width:390,height:844});
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth)).toBe(true);
+  await page.screenshot({path:"test-results/ui128-inbox-area-mobile.png",fullPage:true});
   await page.goto("/finance/expenses");
   const expense=page.locator("article.reviewCard").filter({hasText:vendor}).first();
   await expect(expense.getByRole("button",{name:"Director approve and post"})).toHaveCount(0);
+  await expect(expense.locator(".ui-statusBadge-pending").first()).toContainText("submitted");
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth)).toBe(true);
+  await page.screenshot({path:"test-results/ui128-expense-area-mobile.png",fullPage:true});
+  await page.setViewportSize({width:1440,height:900});
+  await page.screenshot({path:"test-results/ui128-expense-area-desktop.png",fullPage:true});
   const directorContext=await browser.newContext();
   try{
     const director=await directorContext.newPage();
