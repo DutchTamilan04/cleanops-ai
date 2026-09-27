@@ -119,7 +119,7 @@ export default async function ReconciliationPage({ searchParams }: { searchParam
     { key: "linked", header: "Linked at", render: (item) => item.linked_at },
     {
       key: "action", header: "Action", render: (item) => item.state === "active" && selected && selected.state !== "closed" ? (
-        <form action={reconcileFinance}>
+        <form action={reconcileFinance} className="reconciliationCorrection">
           <input type="hidden" name="kind" value="void" />
           <input type="hidden" name="periodId" value={selected.period_id} />
           <input type="hidden" name="linkId" value={item.id} />
@@ -159,6 +159,7 @@ export default async function ReconciliationPage({ searchParams }: { searchParam
       </section>
 
       {selected ? <>
+        {selected.state === "closed" && selected.stale ? <Alert tone="pending">This closed period changed after close. A Director must reopen and review it before claiming a current close.</Alert> : null}
         <section className="financePanel">
           <div className="panelHeading"><div><p className="eyebrow">Selected period</p><h2>{selected.period_start} close controls</h2></div></div>
           <KpiCardGrid>

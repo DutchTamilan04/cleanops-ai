@@ -1798,6 +1798,8 @@ a:focus-visible {
   .projectDetailMetrics { grid-template-columns: minmax(0, 1fr); gap: 2px; }
   .projectDetailMetrics dd { margin-bottom: var(--v2-space-2); text-align: left; }
 }
+.reconciliationCorrection { display: grid; gap: var(--v2-space-2); min-width: 180px; }
+.reconciliationCorrection .ui-button { justify-self: start; }
 .messageQueue { margin-top: 20px; }
 .messageQueueList { display: grid; gap: 14px; }
 .messageQueueItem { display: grid; grid-template-columns: minmax(0, 1fr) minmax(250px, .75fr); gap: 20px; padding: 17px 0; border-top: 1px solid var(--v2-border); }
