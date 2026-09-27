@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState,useTransition } from "react";
 import { rejectExpense,resolveExpense,suggestExpense } from "@/app/finance/expenses/actions";
 import { ExpenseReceiptUploader } from "@/components/expense-receipt-uploader";
+import { Alert, Button, KpiCard, KpiCardGrid, StatusBadge } from "@/components/ui";
 import type { ExpenseClaim,ExpenseDocument,ExpenseIntake } from "@/integrations/finance/supabase-expenses";
 import { formatUtcTimestamp } from "@/lib/format-utc-timestamp";
 
@@ -15,18 +16,27 @@ function hint(value:unknown){return typeof value==="string"||typeof value==="num
 export function ExpenseInbox({intakes,documents,claims,sites}:{intakes:ExpenseIntake[];
   documents:ExpenseDocument[];claims:ExpenseClaim[];sites:{id:string;name:string}[]}){
   const router=useRouter();
-  const [notice,setNotice]=useState("");
+  const [notice,setNotice]=useState<{ok:boolean;message:string}|null>(null);
   const [pending,startTransition]=useTransition();
   const [drafts,setDrafts]=useState<Record<string,Record<string,string>>>({});
   function field(item:ExpenseIntake,key:string,initial:string){return drafts[item.id]?.[key]??initial;}
   function change(id:string,key:string,value:string){setDrafts(old=>({...old,[id]:{...old[id],[key]:value}}));}
   function run(action:()=>Promise<{ok:boolean;message:string}>){
-    startTransition(async()=>{const result=await action();setNotice(result.message);router.refresh();});
+    startTransition(async()=>{const result=await action();setNotice(result);router.refresh();});
   }
-  return <section><h2>Finance Inbox</h2>
+  const awaitingReview=intakes.filter(item=>["pending","needs_review"].includes(item.review_state)).length;
+  const reviewed=intakes.filter(item=>item.review_state==="resolved").length;
+  const finalized=intakes.filter(item=>["posted","rejected"].includes(item.review_state)).length;
+  return <section className="expenseInbox"><h2>Finance Inbox</h2>
     <p>Messages and receipts are source evidence. Suggested fields need human review; only a Director can post cost.</p>
-    {notice&&<p role="status">{notice}</p>}
-    {intakes.length===0&&<p>No finance candidates are visible for your assigned casinos.</p>}
+    <KpiCardGrid ariaLabel="Finance candidate counts">
+      <KpiCard label="Candidates" value={intakes.length}/>
+      <KpiCard label="Awaiting review" value={awaitingReview}/>
+      <KpiCard label="Reviewed" value={reviewed}/>
+      <KpiCard label="Finalized" value={finalized}/>
+    </KpiCardGrid>
+    {notice&&<Alert tone={notice.ok?"success":"danger"}>{notice.message}</Alert>}
+    {intakes.length===0&&<Alert tone="info">No finance candidates are visible for your assigned casinos.</Alert>}
     {intakes.map(item=>{
       const proposal=item.proposed;
       const docs=documents.filter(d=>d.intake_id===item.id);
@@ -37,19 +47,23 @@ export function ExpenseInbox({intakes,documents,claims,sites}:{intakes:ExpenseIn
       const total=field(item,"total",hint(proposal.total));
       const siteId=field(item,"siteId",item.site_id??"");
       return <article className="reviewCard" key={item.id} id={item.id}>
-        <h3>{item.source_kind==="whatsapp"?"WhatsApp":"App"} candidate · {item.review_state.replaceAll("_"," ")}</h3>
-        <p>Source text (untrusted): <span>{item.source_text}</span></p>
-        <p>Received {formatUtcTimestamp(item.created_at)}</p>
-        <button type="button" disabled={pending||["posted","rejected"].includes(item.review_state)}
-          onClick={()=>run(()=>suggestExpense(item.id))}>Suggest fields from source</button>
-        {item.extraction_state==="suggested"&&<p>Machine suggestion: <code>{JSON.stringify(proposal)}</code></p>}
-        {docs.length===0?<p>Receipt missing. Approval requires a verified receipt.</p>:<ul>{docs.map(doc=><li key={doc.id}>
-          Receipt {doc.status}{doc.sha256?` · SHA-256 ${doc.sha256.slice(0,12)}…`:""}
+        <div className="expenseInboxHeading"><h3>{item.source_kind==="whatsapp"?"WhatsApp":"App"} candidate</h3><StatusBadge tone={item.review_state==="posted"?"success":item.review_state==="rejected"?"danger":item.review_state==="resolved"?"info":"pending"}>{item.review_state.replaceAll("_"," ")}</StatusBadge></div>
+        <section className="expenseInboxGroup" aria-label="Source evidence">
+          <h4>Source evidence</h4>
+          <p>Source text (untrusted): <span>{item.source_text}</span></p>
+          <p>Received {formatUtcTimestamp(item.created_at)}</p>
+          <Button type="button" disabled={pending||["posted","rejected"].includes(item.review_state)}
+            onClick={()=>run(()=>suggestExpense(item.id))}>Suggest fields from source</Button>
+          {item.extraction_state==="suggested"&&<Alert tone="ai"><details className="expenseInboxSuggestion"><summary>Machine suggestion: inspect proposed fields</summary><code>{JSON.stringify(proposal,null,2)}</code></details></Alert>}
+          {docs.length===0?<Alert tone="pending">Receipt missing. Approval requires a verified receipt.</Alert>:<ul>{docs.map(doc=><li key={doc.id}>
+          Receipt <StatusBadge tone={doc.status==="ready"?"success":doc.status==="failed"||doc.status==="quarantined"?"danger":"pending"}>{doc.status}</StatusBadge>{doc.sha256?` · SHA-256 ${doc.sha256.slice(0,12)}…`:""}
           {doc.status==="ready"&&<> · <a href={`/api/finance/expenses/documents/${doc.id}/download`}>Open source receipt</a></>}
         </li>)}</ul>}
-        {exact&&<p role="alert">Exact receipt already posted from another message. This claim cannot post twice.</p>}
-        {similar&&<p role="alert">Possible duplicate: vendor, date and amount match another claim. Review the receipts.</p>}
+          {exact&&<Alert tone="danger">Exact receipt already posted from another message. This claim cannot post twice.</Alert>}
+          {similar&&<Alert tone="pending">Possible duplicate: vendor, date and amount match another claim. Review the receipts.</Alert>}
+        </section>
         {item.review_state!=="posted"&&item.review_state!=="rejected"&&<>
+          <section className="expenseInboxGroup" aria-label="Reviewed fields"><h4>Reviewed fields</h4>
           <ExpenseReceiptUploader intakeId={item.id}/>
           <div className="financeGrid">
             <label>Casino <select value={siteId} onChange={e=>change(item.id,"siteId",e.target.value)}>
@@ -85,8 +99,9 @@ export function ExpenseInbox({intakes,documents,claims,sites}:{intakes:ExpenseIn
               onChange={e=>change(item.id,"reason",e.target.value)}/></label>
           </div>
           {proposal.total!=null&&total&&Number(total)!==Number(proposal.total)&&
-            <p>Human total differs from the suggestion. Record a review reason before Director approval.</p>}
-          <button type="button" disabled={pending} onClick={()=>{
+            <Alert tone="pending">Human total differs from the suggestion. Record a review reason before Director approval.</Alert>}
+          </section>
+          <div className="expenseInboxActions"><Button variant="primary" type="button" disabled={pending} onClick={()=>{
             const splitSiteId=field(item,"splitSiteId","");
             const splitAmount=Number(field(item,"splitAmount",""));
             const allocations=splitSiteId&&splitAmount>0?[{siteId,amount:Number(total)-splitAmount,
@@ -101,12 +116,12 @@ export function ExpenseInbox({intakes,documents,claims,sites}:{intakes:ExpenseIn
               total:Number(total),description:field(item,"description",item.source_text.slice(0,300)),
               contractId:null,projectReference:field(item,"projectReference","")||null,
               allocations,reason:field(item,"reason","")||null}));
-          }}>Save reviewed expense</button>
-          <button type="button" disabled={pending} onClick={()=>{
+          }}>Save reviewed expense</Button>
+          <Button variant="danger" type="button" disabled={pending} onClick={()=>{
             const reason=field(item,"reason","");run(()=>rejectExpense({intakeId:item.id,reason}));
-          }}>Reject with reason</button>
+          }}>Reject with reason</Button></div>
         </>}
-        {claim&&<p>Claim {claim.status} · {claim.currency} {claim.total.toFixed(2)} · <Link href={`/finance/expenses#${claim.id}`}>Expense provenance</Link></p>}
+        {claim&&<p className="expenseInboxDecision">Claim <StatusBadge tone={claim.status==="posted"?"success":"pending"}>{claim.status}</StatusBadge> · {claim.currency} {claim.total.toFixed(2)} · <Link href={`/finance/expenses#${claim.id}`}>Expense provenance</Link></p>}
       </article>;
     })}
   </section>;
