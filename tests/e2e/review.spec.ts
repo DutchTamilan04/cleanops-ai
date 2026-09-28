@@ -20,7 +20,8 @@ test("submit, review, correct, approve, and retain the latest revision", async (
 
   await page.getByRole("button", { name: "Run Mock AI" }).click();
   await expect(page.getByText("86", { exact: true })).toBeVisible();
-  await expect(page.getByText("Mock AI", { exact: true })).toBeVisible();
+  await expect(page.getByText("Mock AI", { exact: true })).toHaveClass(/ui-statusBadge-ai/);
+  await expect(page.getByText("Suggested by Mock AI")).toHaveClass(/ui-statusBadge-ai/);
   await expect(page.getByText(/Possible streak remains/)).toBeVisible();
 
   await page.getByRole("button", { name: "Confirm and request correction" }).click();
@@ -37,6 +38,7 @@ test("submit, review, correct, approve, and retain the latest revision", async (
   await page.getByRole("button", { name: "Approve revision 2" }).click();
   await expect(page.getByText("Approved", { exact: true }).first()).toBeVisible();
   await expect(page.getByText("Revision 2 approved")).toBeVisible();
+  await expect(page.getByText("Revision 2 approved").locator("xpath=ancestor::*[contains(@class,'ui-alert-success')][1]")).toBeVisible();
 
   await page.reload();
   await expect(page.getByText("Revision 2 approved")).toBeVisible();
