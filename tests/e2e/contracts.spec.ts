@@ -54,6 +54,7 @@ test("Director saves, reviews and activates a manual fixed monthly contract", as
   await expect(page.getByText(/Create 1 tasks, 1 schedules/)).toBeVisible();
   await page.screenshot({ path: "test-results/ui128-contract-impact-mobile.png", fullPage: true });
   await page.getByRole("button", { name: "Activate approved version" }).click();
+  await page.getByRole("dialog", { name: "Activate this contract version?" }).getByRole("button", { name: "Activate version" }).click();
   await expect(page.getByText(/version 1 · active/)).toBeVisible();
   await expect(page.locator(".contractReview .ui-statusBadge-success").first()).toContainText("active");
 });

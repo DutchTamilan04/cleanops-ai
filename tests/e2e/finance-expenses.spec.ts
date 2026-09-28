@@ -37,7 +37,15 @@ test("worker receipt becomes one Director-approved expense with drill-through",a
     await expect(expense.getByText(/Original app message/)).toBeVisible();
     await expect(expense.getByRole("link",{name:"Open original"})).toBeVisible();
     await expect(expense.locator(".ui-statusBadge-pending").first()).toContainText("submitted");
+    const confirmPost=director.getByRole("dialog",{name:"Approve and post this expense?"});
     await expense.getByRole("button",{name:"Director approve and post"}).click();
+    await expect(confirmPost).toBeVisible();
+    await director.keyboard.press("Escape");
+    await expect(confirmPost).toBeHidden();
+    await expect(expense.getByRole("button",{name:"Director approve and post"})).toBeFocused();
+    await expect(expense.locator(".ui-statusBadge-pending").first()).toContainText("submitted");
+    await expense.getByRole("button",{name:"Director approve and post"}).click();
+    await confirmPost.getByRole("button",{name:"Approve and post",exact:true}).click();
     await expect(expense.getByText(/Director approval:/)).toBeVisible();
     await expect(expense.locator("li").filter({hasText:/fuel travel · CAD 42.50/}).first()).toBeVisible();
     await expect(expense.locator(".ui-statusBadge-success").first()).toContainText("posted");
@@ -96,6 +104,7 @@ test("Area Manager resolves assigned-site context but cannot post missing receip
     await director.goto("/finance/expenses");
     const pending=director.locator("article.reviewCard").filter({hasText:vendor}).first();
     await pending.getByRole("button",{name:"Director approve and post"}).click();
+    await director.getByRole("dialog",{name:"Approve and post this expense?"}).getByRole("button",{name:"Approve and post",exact:true}).click();
     await expect(pending.getByText("Verified receipt required")).toBeVisible();
   }finally{await directorContext.close();}
 });

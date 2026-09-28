@@ -17,6 +17,7 @@ test("styled finance controls retain import acceptance and period close guards",
   await expect(page.getByRole("status").filter({ hasText: "0 deterministic matches linked" })).toBeVisible();
   await controls.getByRole("button", { name: "Move to review" }).click();
   await controls.getByRole("button", { name: "Close balanced period" }).click();
+  await page.getByRole("dialog", { name: "Close this finance period?" }).getByRole("button", { name: "Close period" }).click();
   await expect(page.getByRole("alert").filter({ hasText: "period has missing coverage or unresolved material amounts" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Reopen", exact: true })).toHaveCount(0);
 
@@ -30,6 +31,7 @@ test("styled finance controls retain import acceptance and period close guards",
   await expect(page.getByRole("status").filter({ hasText: "Preview ready" })).toBeVisible();
   await page.getByLabel("Import status").selectOption("complete");
   await page.getByRole("button", { name: "Accept import" }).click();
+  await page.getByRole("dialog", { name: "Accept this accounting import?" }).getByRole("button", { name: "Accept accounting import" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Finance import accepted and reconciled" })).toBeVisible();
 
   await page.getByRole("navigation", { name: "Finance sections" }).getByRole("link", { name: "Reconciliation" }).click();
@@ -37,7 +39,13 @@ test("styled finance controls retain import acceptance and period close guards",
   await expect(controls).toContainText("complete");
   await expect(page.getByRole("heading", { name: "Accepted accounting batches" }).locator("xpath=ancestor::section[1]").getByRole("table"))
     .toContainText("ui142-complete-coverage.csv");
+  const confirmClose = page.getByRole("dialog", { name: "Close this finance period?" });
   await controls.getByRole("button", { name: "Close balanced period" }).click();
+  await confirmClose.getByRole("button", { name: "Cancel" }).click();
+  await expect(confirmClose).toBeHidden();
+  await expect(controls.getByRole("button", { name: "Reopen", exact: true })).toHaveCount(0);
+  await controls.getByRole("button", { name: "Close balanced period" }).click();
+  await confirmClose.getByRole("button", { name: "Close period" }).click();
   await expect(page.getByRole("status").filter({ hasText: "close saved" })).toBeVisible();
   await expect(controls.getByRole("button", { name: "Reopen", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Link amount" })).toHaveCount(0);

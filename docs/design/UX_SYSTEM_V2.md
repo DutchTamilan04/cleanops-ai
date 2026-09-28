@@ -137,7 +137,7 @@ Each component's full rules and live previews are in the library. Summary:
 | `.neutralBadge`, `.coverageBadge*`, `.releaseBadge*`, `.shiftPill`, `.taskState`, `.zoneState`, `.equipmentState`, `.equipmentAssetState`, `.resolutionStatus`, `.accessState`, `.confirmedState`, `.dismissedState`, `.qualityAwaiting`, `.mockLabel`, `.prototypePill` | Status badge |
 | `.prototypeBanner`, `.approvalCallout`, `.boundaryCallout`, `.reviewNotice*`, `.mobileNotice*`, `.importIssue*`, `.manualNote`, `.clientPrivacyNote`, `.privacyLabel` | Alert |
 | `.emptyState`, `.mobileEmptyState`, `.portfolioEmpty`, `.reviewEmpty`, `.reportingEmpty`, `.clientReportEmpty`, `.routeLoading`, `.loadingPulse`, `.loginError` | State views |
-| None today (confirmations are inline buttons) | Dialog / sheet: new |
+| Confirmation gates (post expense, post labour, accept import, close period, release report, activate contract) | `ConfirmAction` in `src/components/ui/confirm-action.tsx` (#155) |
 | None today | Filters: new |
 
 Current tokens map as: `--navy-950/900/800` → `brand-navy`, `brand-navy-900`, `brand-navy-700`; `--cyan-*` and `--focus` → retired (`brand-blue`, `focus-ring`); `--canvas`, `--surface`, `--text`, `--muted`, `--border` → `canvas`, `surface`, `ink`, `ink-muted`, `border`; `--radius` → `radius-md`/`radius-lg`; `--shadow` → `shadow-overlay`. Body text currently names Inter without loading it, so it falls back to system fonts; V2 loads its faces explicitly. Demo-only surfaces (`.rolePicker`, `.loginPage`, `.qrGraphic`) keep their behaviour and adopt tokens only.

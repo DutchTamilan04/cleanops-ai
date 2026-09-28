@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
-import { Alert, Button, DataTable, KpiCard, KpiCardGrid, SectionTabs, SelectField, StatusBadge, TextField, type DataTableColumn } from "@/components/ui";
+import { Alert, Button, ConfirmAction, DataTable, KpiCard, KpiCardGrid, SectionTabs, SelectField, StatusBadge, TextField, type DataTableColumn } from "@/components/ui";
 import { getFinanceSectionTabs } from "@/config/finance-navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getAppAccessContext } from "@/services/access-context";
@@ -24,7 +24,14 @@ function ActionButton({ label, kind, periodId, variant = "secondary" }: { label:
     <form action={reconcileFinance} className="inlineAction">
       <input type="hidden" name="kind" value={kind} />
       <input type="hidden" name="periodId" value={periodId} />
-      <Button variant={variant} type="submit">{label}</Button>
+      {kind === "close" ? (
+        <ConfirmAction label={label} variant={variant}
+          title="Close this finance period?"
+          consequence="Closing freezes this month's metrics as a versioned snapshot. Changing them afterwards requires a reasoned reopen."
+          confirmLabel="Close period" />
+      ) : (
+        <Button variant={variant} type="submit">{label}</Button>
+      )}
     </form>
   );
 }

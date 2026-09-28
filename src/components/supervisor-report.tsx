@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { performReportAction, type ReportActionState } from "@/app/reports/actions";
 import type { SupervisorReportWorkspace } from "@/integrations/reporting/supabase-reporting";
-import { Alert, Button, KpiCard, KpiCardGrid, StatusBadge } from "@/components/ui";
+import { Alert, Button, ConfirmAction, KpiCard, KpiCardGrid, StatusBadge } from "@/components/ui";
 
 export function SupervisorReport({ workspace }: { workspace: SupervisorReportWorkspace }) {
   const [pending, startTransition] = useTransition();
@@ -36,7 +36,11 @@ export function SupervisorReport({ workspace }: { workspace: SupervisorReportWor
             <section className="reportingPanel"><p className="eyebrow">Released wording preview</p><h2>Operations summary</h2><p>{report.incident_summary}</p><p>{report.equipment_summary}</p></section>
             <section className="reportingPanel"><p className="eyebrow">Safety metric</p><h2>N/A</h2><p>{report.safety_explanation}</p><Alert tone="pending"><strong>No “zero overdue” claim</strong><p>Safety schedules and check records are outside this phase.</p></Alert></section>
           </div>
-          <div className={`releasePanel ${report.state === "released" ? "releasePanel-released" : "releasePanel-draft"}`}><Alert tone={report.state === "released" ? "success" : "pending"}><strong>{report.state === "released" ? "Client access enabled" : "Client access is still closed"}</strong><p>{report.state === "released" ? "Only this redacted snapshot is available to site-authorized client viewers." : "Review the snapshot, then release it deliberately."}</p></Alert>{report.state === "draft" ? <Button variant="primary" type="button" disabled={pending} onClick={() => act({ action: "release_report", reportId: report.id })}>Release report to client</Button> : <a className="ui-button ui-button-secondary" href="/reports/client">Open client view</a>}</div>
+          <div className={`releasePanel ${report.state === "released" ? "releasePanel-released" : "releasePanel-draft"}`}><Alert tone={report.state === "released" ? "success" : "pending"}><strong>{report.state === "released" ? "Client access enabled" : "Client access is still closed"}</strong><p>{report.state === "released" ? "Only this redacted snapshot is available to site-authorized client viewers." : "Review the snapshot, then release it deliberately."}</p></Alert>{report.state === "draft" ? <ConfirmAction label="Release report to client" disabled={pending}
+            title="Release this report to the client?"
+            consequence="Site-authorized client viewers will see this redacted snapshot. Released snapshots are not edited, and there is no correction workflow yet."
+            confirmLabel="Release to client"
+            onConfirm={() => act({ action: "release_report", reportId: report.id })} /> : <a className="ui-button ui-button-secondary" href="/reports/client">Open client view</a>}</div>
         </>
       ) : (
         <section className="reportingEmpty reportPrepare"><h2>No report prepared</h2><p>The 150 task-result fixture is ready. Preparing computes and stores the metric once without releasing it.</p><Button variant="primary" type="button" disabled={pending} onClick={() => act({ action: "prepare_report" })}>Prepare computed report</Button></section>
