@@ -13,6 +13,7 @@ export type AdapterWorkerRepository = IngressRepository & {
   }>;
   retryFailedAdapterJob(jobId: string): Promise<boolean>;
   pruneNonces(): Promise<number>;
+  expireAdapterMedia(): Promise<number>;
 };
 
 function authorized(request: Request, secrets: string | readonly string[]) {
@@ -69,13 +70,14 @@ export async function handleIntegrationWorker(
     }
 
     const result = await drainAdapterJobs(adapter);
+    const expiredMediaCount = await adapter.expireAdapterMedia();
     await adapter.pruneNonces();
     if (result.alertCodes.includes("dead_letter_present") || result.alertCodes.includes("pending_age_exceeded")) {
       console.error("cleanops_adapter_queue_alert", JSON.stringify({
         alertCodes: result.alertCodes, health: result.health,
       }));
     }
-    return Response.json(result, { status: result.alertCodes.includes("dead_letter_present") ||
+    return Response.json({ ...result, expiredMediaCount }, { status: result.alertCodes.includes("dead_letter_present") ||
       result.alertCodes.includes("pending_age_exceeded") ? 503 : 200,
       headers: { "cache-control": "no-store" },
     });

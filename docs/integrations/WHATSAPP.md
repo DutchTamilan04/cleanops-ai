@@ -158,7 +158,7 @@ server-only `CRON_SECRET` or separate `CLEANOPS_EVENT_WORKER_TOKEN`, each at lea
 32 characters. On durable `202`, Next.js `after()` starts a best-effort five-job drain.
 `vercel.json` schedules a protected daily recovery drain at 03:00 UTC on production.
 Each GET starts at most 20 adapter jobs and stops starting new work after 20 seconds,
-prunes nonces older than a day,
+marks staged image uploads older than two hours as missing, prunes nonces older than a day,
 and returns pending/processing/retrying/failed counts and age signals. Stale pending
 or failed jobs return 503 with safe codes for monitoring. `POST` with
 `{"retryJobId":"<uuid>"}` retries only an adapter failed job. Daily fallback does

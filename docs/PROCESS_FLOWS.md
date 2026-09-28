@@ -120,7 +120,8 @@ SHA-256 but no image bytes. After the job succeeds, a scoped evidence row is sta
 The caller signs a `prepare` command, uploads directly to the private Storage path
 with a two-hour token, then signs `finalize`. The server downloads only that path,
 sniffs bytes and checks size/hash before making the evidence ready. Missing or
-unsafe objects receive a recoverable reason; a signed retry rotates the path.
+unsafe objects receive a recoverable reason; the protected worker marks abandoned
+staged uploads missing after two hours, and a signed retry rotates the path.
 The text message remains in review if media is missing, and neither media readiness
 nor a suggested intent approves a task, quality decision or finance posting.
 

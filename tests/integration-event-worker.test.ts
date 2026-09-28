@@ -18,6 +18,7 @@ function repository(overrides: Partial<AdapterWorkerRepository> = {}): AdapterWo
     })),
     retryFailedAdapterJob: vi.fn(async () => true),
     pruneNonces: vi.fn(async () => 0),
+    expireAdapterMedia: vi.fn(async () => 0),
     ...overrides,
   };
 }
@@ -44,9 +45,11 @@ describe("CLEAN-014D deployed adapter worker", () => {
     expect(response.status).toBe(200);
     expect(await response.json()).toMatchObject({
       processed: 0, failed: 0, alertCodes: [],
+      expiredMediaCount: 0,
       health: { pendingCount: 0, pendingAgeSeconds: null },
     });
     expect(adapter.pruneNonces).toHaveBeenCalledOnce();
+    expect(adapter.expireAdapterMedia).toHaveBeenCalledOnce();
   });
 
   it("keeps a protected deployed cron inert until the adapter is enabled", async () => {
