@@ -1,0 +1,27 @@
+name: Adapter worker monitor
+
+on:
+  schedule:
+    - cron: "10 4 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: Check protected adapter worker and notify owner
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CLEANOPS_ADAPTER_WORKER_URL: ${{ vars.CLEANOPS_ADAPTER_WORKER_URL }}
+          CLEANOPS_ADAPTER_ALERT_ASSIGNEE: ${{ vars.CLEANOPS_ADAPTER_ALERT_ASSIGNEE }}
+          CLEANOPS_EVENT_WORKER_TOKEN: ${{ secrets.CLEANOPS_EVENT_WORKER_TOKEN }}
+        run: node scripts/monitor-event-adapter-worker.mjs
