@@ -40,6 +40,73 @@ payload and current Meta account eligibility, participant/thread identifiers, me
 terms and recovery behaviour are verified. If it does not, use the separately approved provider
 or supervisor-forward/PWA fallback recorded in the group-capability issue.
 
+## Provider-neutral event adapter (CLEAN-014 first slice)
+
+`POST /api/integrations/events/v1` is a separate, opt-in, **text-only** adapter for
+registered external accounts. The sender supplies no tenant or site role. A server-held HMAC key
+ID maps to one enabled `event_adapter` integration account, one organization, one site, one
+source and the `message:write` capability in `integration_adapter_credentials`. The key
+secret lives only in `CLEANOPS_EVENT_ADAPTER_KEYS` on the app server, never in the database
+or Make configuration that also has a privileged key. Create a new key ID for rotation, overlap
+briefly, then disable the old credential. Set `CLEANOPS_EVENT_ADAPTER_ENABLED=true` only after
+provisioning the matching database row and secret.
+
+The exact UTF-8 JSON request body has a 64 KB limit and this versioned shape:
+
+```json
+{
+  "schemaVersion": 1,
+  "source": "whatsapp",
+  "sourceAccountId": "registered-account-id",
+  "externalEventId": "source-event-id",
+  "externalMessageId": "provider-message-id",
+  "threadId": "source-thread-id",
+  "senderReference": "source-sender-id",
+  "occurredAt": "2026-09-28T09:00:00Z",
+  "text": "Fuel for the Hastings job tonight.",
+  "media": [],
+  "parentReference": "optional-source-reply-id",
+  "forwardedBy": "optional-forwarder-reference",
+  "synthetic": true
+}
+```
+
+`externalMessageId`, `threadId`, `senderReference`, `parentReference` and
+`forwardedBy` are optional, but unknown identity stays unknown in review. No worker or
+site authorization is inferred from message text. Parent/forwarder/synthetic provenance is
+stored service-only in `integration_adapter_event_provenance`. Media references are rejected
+with `422 media_transport_not_configured` in this first slice: the adapter never reports
+success for an attachment it cannot download and verify. The existing signed Meta webhook
+remains the supported media path.
+
+Set headers `X-CleanOps-Key-Id`, `X-CleanOps-Timestamp` (Unix seconds),
+`X-CleanOps-Nonce` (16–128 URL-safe characters) and `X-CleanOps-Signature` (lowercase
+hex HMAC-SHA256). Sign the following six newline-separated fields, with no trailing newline:
+`POST`, `/api/integrations/events/v1`, key ID, timestamp, nonce, SHA-256 hex of the exact request
+body. The server accepts a five-minute clock window; the database consumes each nonce
+atomically with the event and pending job. Retry a failed transport with a **new nonce**.
+The account plus source message ID dedupes business effects even when the transport event ID
+changes. A reused message ID with changed normalized contents returns `409`.
+
+`202` returns `eventId`, `jobId` and `duplicate`: it means durable acceptance, not
+processing or financial approval. To check a job, sign `GET`,
+`/api/integrations/events/v1/jobs/<jobId>`, key ID, timestamp, a nonce and the SHA-256 of
+an empty body. The scoped response gives status, attempts and a safe error code, never raw
+message content. Unknown job IDs and other tenant jobs return `404`.
+
+The generic worker target `GET /api/internal/integrations/worker` requires a separate
+`CLEANOPS_EVENT_WORKER_TOKEN` (or Vercel `CRON_SECRET`) of at least 32 characters.
+Each call processes up to 20 adapter jobs and returns pending/processing/failed counts and
+oldest pending time. `POST` with `{"retryJobId":"<uuid>"}` retries an adapter failed job
+only. Schedule GET from a protected production scheduler and alert on persistent failed jobs
+or oldest pending age. Hosting does **not** yet configure that schedule; a deployed route
+alone is not evidence of continuous processing. Purge nonce records older than one day as
+an operator maintenance task after the scheduler is selected.
+
+After normalization, the existing context and finance candidate triggers run. The review
+queue shows a deterministic suggested intent. It is a hint only: Director/Area Manager
+confirmation and the existing domain approval gates still control any effect.
+
 ## Ingress and normalized contract
 
 Implemented live route `/api/webhooks/whatsapp`: GET subscription verification, POST signed events.

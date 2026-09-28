@@ -48,6 +48,11 @@ the worker reuses message normalization and evidence services, downloads media w
 token, and advances a separate leased outbound queue. Hosting still needs to schedule repeated
 worker calls and alert on the service-only queue-health RPC.
 
+CLEAN-014 adds an opt-in, provider-neutral text event route with HMAC key/site/source binding,
+nonce replay protection and the same durable event/job/message pipeline. A protected
+`/api/internal/integrations/worker` target claims only adapter jobs, avoiding WhatsApp media
+ownership. Its hosted scheduler and alert delivery must be configured before a live pilot.
+
 Idempotency exists at envelope, message, evidence and AI-job boundaries. Updates to a
 business record, audit event and next job are transactional; media uses staged upload
 plus reconciliation since Storage and Postgres are not one transaction.

@@ -366,6 +366,19 @@ The `/finance/contracts/[id]/review` panel reads `contract_documents`, `contract
 ### Make WhatsApp transport
 `/api/integrations/make/whatsapp/v1` (CLEAN-026) requires `CLEANOPS_MAKE_WHATSAPP_ENABLED=true` (otherwise 404) and a dedicated bearer token, validates the flattened official Cloud API event bundle (JSON or Make-safe URL-encoded scalars, 1 MB cap) and reuses the same durable ingress path (`accept_whatsapp_ingress_event`). The tenant is derived from the receiving phone-number ID in `integration_accounts`; Make does not supply tenant identity. Delivery statuses are handled separately from operational messages. It is a WhatsApp Cloud event adapter, not the generic multi-source intake API proposed in issue #27.
 
+### Provider-neutral text intake (CLEAN-014 first slice)
+`/api/integrations/events/v1` verifies HMAC on raw bytes and validates a strict event schema.
+`accept_adapter_ingress_event` resolves the key ID through `integration_adapter_credentials`,
+checks registered account/site/source/capability, consumes an
+`integration_adapter_nonces` row and inserts `integration_webhook_events` +
+`processing_jobs` in one transaction. `integration_adapter_event_provenance` retains
+forwarder/reply/synthetic context. `/api/internal/integrations/worker` claims only adapter
+jobs, calls `complete_processing_job`, then existing triggers populate
+`external_messages`, `external_message_contexts.intent_kind` and, for finance text,
+`finance_intake_items`. The selected-site message queue reads the intent as a suggestion;
+it cannot approve or post. The signed job-status route uses
+`get_adapter_ingress_status` and returns only the credential's account jobs.
+
 ### WhatsApp outbound
 `whatsapp_outbox` owns idempotency/retry state; `whatsapp_delivery_events` owns transport history.
 
