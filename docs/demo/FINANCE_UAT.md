@@ -1,6 +1,8 @@
 # Finance showcase UAT — synthetic Gate A
 
-For a read-only customer presentation using the currently verified hosted run, start with
+This checklist belongs to the historical synthetic Gate A version 8 run. Before reusing it after the
+current `main` UI or a new scenario release, assert the hosted seed/run and recapture evidence.
+For a read-only presentation using a verified hosted run, start with
 [GATE_A_FINANCE_TRAINING.md](GATE_A_FINANCE_TRAINING.md) for screenshots and the spoken route,
 then [TORNADO_FINANCE_REHEARSAL.md](TORNADO_FINANCE_REHEARSAL.md). The
 [implemented process flows](GATE_A_FINANCE_PROCESS_FLOWS.md) explain the approval and persistence

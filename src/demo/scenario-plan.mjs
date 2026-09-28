@@ -122,7 +122,7 @@ export function buildScenarioPlan(input, reference) {
       paymentMethod: "supplier_invoice", siteIndex: 0, sourceKind: "app",
       date: scenario.clock.start, projectReference: "HASTINGS-DEEP-CLEAN",
       file: "project-supply-receipt.png", approved: true });
-    if (scenario.generatorVersion >= 7 && scenario.modules.reconciliation) {
+    if (scenario.generatorVersion >= 7 && (scenario.modules.reconciliation || scenario.modules.equipment)) {
       cases.push({ key: "august-supply", category: "supplies", vendor: "Demo August Supplies",
         cents: 7250 + Math.floor(rng() * 300), paymentMethod: "supplier_invoice",
         siteIndex: 1, sourceKind: "app", date: "2026-08-10", projectReference: null,
@@ -132,9 +132,61 @@ export function buildScenarioPlan(input, reference) {
         siteIndex: 1, sourceKind: "app", date: "2026-08-12", projectReference: null,
         file: "august-repair-receipt.png", approved: true });
     }
+    if (scenario.generatorVersion >= 9 && scenario.modules.supplies) {
+      cases.push({ key: "supply-standard", category: "supplies", vendor: "Synthetic Supply Invoice",
+        cents: 42000, paymentMethod: "supplier_invoice", siteIndex: 0, sourceKind: "app",
+        date: "2026-09-15", projectReference: null, file: "supply-standard-receipt.png", approved: true });
+      cases.push({ key: "supply-high", category: "supplies", vendor: "Synthetic Bulk Supply Invoice",
+        cents: 650000, paymentMethod: "supplier_invoice", siteIndex: 1, sourceKind: "app",
+        date: "2026-09-16", projectReference: null, file: "supply-high-receipt.png", approved: true });
+    }
     return cases;
   })() : null;
   const expenseCents = expenseCases?.filter((item) => item.approved).reduce((sum,item) => sum+item.cents,0) ?? 0;
+  const supplyCases = scenario.modules.supplies ? (() => {
+    if (sites.length < 2) throw new Error("Supply comparison requires two sites.");
+    return {
+      vendor: { id: id("supplies/vendor"), organization_id: organization.id,
+        vendor_code: "SYNTH-SUPPLY", name: "Synthetic Supply Vendor" },
+      item: { id: id("supplies/item"), organization_id: organization.id,
+        sku: "SYNTH-CLEAN-5L", name: "Synthetic cleaning solution 5 L", category: "cleaning",
+        unit_of_measure: "L", reorder_level: 30 },
+      requests: [
+        { key: "normal", siteIndex: 0, requestKey: id("supplies/normal/request"),
+          receiptKey: id("supplies/normal/receipt"), openingKey: id("supplies/normal/opening"),
+          issueKey: id("supplies/normal/issue"), packCount: 12, baseUnitsPerPack: 5,
+          pricePerPack: 35, receivedBaseQuantity: 60, openingBaseQuantity: 120,
+          issuedBaseQuantity: 50, expenseKey: "supply-standard" },
+        { key: "high", siteIndex: 1, requestKey: id("supplies/high/request"),
+          receiptKey: id("supplies/high/receipt"), packCount: 130, baseUnitsPerPack: 5,
+          pricePerPack: 50, receivedBaseQuantity: 50, openingBaseQuantity: 0,
+          issuedBaseQuantity: 0, expenseKey: "supply-high" },
+      ],
+    };
+  })() : null;
+  const equipmentCases = scenario.modules.equipment ? (() => {
+    if (sites.length < 2) throw new Error("Equipment comparison requires two sites.");
+    return {
+      model: { id: id("equipment/model"), organization_id: organization.id,
+        model_code: "SYNTH-SCRUBBER", manufacturer: "Synthetic Demo",
+        model_name: reference.equipmentNames[0] ?? "Synthetic scrubber", category: "floor_care",
+        spec_summary: "Synthetic demo reference; no manufacturer maintenance claim." },
+      zone: { id: id("equipment/zone"), organization_id: organization.id,
+        site_id: sites[1].id, name: "Synthetic equipment service zone" },
+      healthyAsset: { id: id("equipment/healthy"), organization_id: organization.id,
+        site_id: sites[1].id, model_id: id("equipment/model"), asset_code: "SYNTH-HEALTHY",
+        status: "available", condition: "good", runtime_hours: 120, is_demo: true },
+      repairAsset: { id: id("equipment/repeat-repair"), organization_id: organization.id,
+        site_id: sites[1].id, model_id: id("equipment/model"), asset_code: "SYNTH-REPAIR",
+        status: "available", condition: "fair", runtime_hours: 210, is_demo: true },
+      repairs: [
+        { key: "first", expenseKey: "repair", reportKey: `scenario-${scenario.scenarioId}-repair-first`,
+          invoiceReference: "SYNTH-REPAIR-001", reportedAt: `${scenario.clock.start}T12:00:00Z` },
+        { key: "repeat", expenseKey: "august-repair", reportKey: `scenario-${scenario.scenarioId}-repair-repeat`,
+          invoiceReference: "SYNTH-REPAIR-002", reportedAt: "2026-08-12T12:00:00Z" },
+      ],
+    };
+  })() : null;
   const timeCases = scenario.modules.time ? (() => {
     const siteWorkers = workers.filter(worker => worker.siteIndex === 0);
     if (siteWorkers.length < 2 || !personas.some(persona => persona.role === "organization_administrator"))
@@ -185,10 +237,16 @@ export function buildScenarioPlan(input, reference) {
         currency: "CAD", currentRevenueEntries: contract?.expected.currentRevenueEntries ?? 0,
         approvedExpenseCost: (expenseCents/100).toFixed(2),
         approvedLabourCost: (labourCents/100).toFixed(2),
-        expenseByCategory: Object.fromEntries((expenseCases??[]).filter(item=>item.approved)
-          .map(item=>[item.category,(item.cents/100).toFixed(2)])) } : null },
+        expenseByCategory: scenario.generatorVersion >= 9
+          ? Object.fromEntries([...new Set((expenseCases ?? []).filter(item => item.approved).map(item => item.category))]
+            .map(category => [category, ((expenseCases ?? []).filter(item => item.approved && item.category === category)
+              .reduce((sum, item) => sum + item.cents, 0) / 100).toFixed(2)]))
+          : Object.fromEntries((expenseCases??[]).filter(item=>item.approved)
+            .map(item=>[item.category,(item.cents/100).toFixed(2)])) } : null },
     expectedExceptions: [...(expenseCases ? ["duplicate_whatsapp_receipt"] : []),
-      ...(timeCases ? ["missing_checkout", "worker_swap"] : [])],
+      ...(timeCases ? ["missing_checkout", "worker_swap"] : []),
+      ...(supplyCases ? ["high_supply_request", "partial_supply_receipt"] : []),
+      ...(equipmentCases ? ["repeat_asset_repair"] : [])],
     roleSiteAccess: personas.map((persona) => ({ persona: persona.key, role: persona.role, siteIds: persona.role === "organization_administrator" || persona.role === "operations_manager" ? sites.map((site) => site.id) : [sites[persona.siteIndex].id] })),
     reconciliation: scenario.modules.reconciliation ? { status: "review_required", exact: 1, ambiguous: 2, unmatched: 1, closedMonth: "2026-07-01", staleAfterLateImport: true,
       ...(scenario.generatorVersion >= 7 ? { showcaseMonth: "2026-08-01", showcaseClosed: true,
@@ -215,6 +273,24 @@ export function buildScenarioPlan(input, reference) {
   if (contract) expected.entityCounts.contracts = 1;
   if (expenseCases) expected.entityCounts.expenseCandidates=expenseCases.length;
   if (timeCases) expected.entityCounts.timeEntries=timeCases.length;
+  if (supplyCases) {
+    expected.entityCounts.supplyRequests = supplyCases.requests.length;
+    expected.supplies = { itemId: supplyCases.item.id, unit: "L", cases: supplyCases.requests.map(item => ({
+      key: item.key, siteId: sites[item.siteIndex].id,
+      requestedAmount: (item.packCount * item.pricePerPack).toFixed(2),
+      receivedBaseQuantity: item.receivedBaseQuantity,
+      closingBaseQuantity: item.openingBaseQuantity + item.receivedBaseQuantity - item.issuedBaseQuantity,
+      expenseKey: item.expenseKey,
+    })) };
+  }
+  if (equipmentCases) {
+    expected.entityCounts.equipmentAssets = 2;
+    expected.equipment = { siteId: sites[1].id, healthyAssetId: equipmentCases.healthyAsset.id,
+      repairAssetId: equipmentCases.repairAsset.id,
+      repairs: equipmentCases.repairs.map(item => ({ key: item.key, expenseKey: item.expenseKey,
+        invoiceReference: item.invoiceReference,
+        amount: (expenseCases.find(expense => expense.key === item.expenseKey).cents / 100).toFixed(2) })) };
+  }
   return { scenario, runId, organization, client, sites, workers, workerPermissions, memberGrants,
-    personas, contract, expenseCases, timeCases, projects, expected };
+    personas, contract, expenseCases, timeCases, projects, supplyCases, equipmentCases, expected };
 }

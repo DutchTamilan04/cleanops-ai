@@ -10,7 +10,7 @@ test("Supervisor sees private review states at desktop and phone widths", async 
   await expect(action).toBeVisible();
   await action.focus();
   await expect(action).toBeFocused();
-  await page.keyboard.press("Tab");
+  await page.keyboard.press("Shift+Tab");
   await expect(page.locator(":focus-visible")).not.toHaveCount(0);
   await page.screenshot({ path: "test-results/ui126-supervisor-desktop.png" });
 

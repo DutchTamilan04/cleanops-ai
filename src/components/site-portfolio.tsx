@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { SitePortfolio as SitePortfolioData } from "@/integrations/operations/supabase-site-portfolio";
 import { Alert } from "@/components/ui/alert";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -23,7 +24,7 @@ export function SitePortfolio({ portfolio }: { portfolio: SitePortfolioData }) {
               <div className="equipmentRegisterHeading"><strong>Equipment register</strong><span>{site.equipmentReports.length} issue reports</span></div>
               {site.equipment.length ? site.equipment.map((asset) => (
                 <div className="equipmentAsset" key={asset.id}>
-                  <div><strong>{asset.type}</strong><span>{asset.assetTag}{asset.model ? ` · ${asset.manufacturer ?? ""} ${asset.model}` : ""}</span><small>Condition: {stateLabel(asset.condition)}{asset.nextServiceAt ? ` · service due ${asset.nextServiceAt}` : ""}</small></div>
+                  <div><strong>{asset.type}</strong><span><Link href={`/equipment/${asset.id}`}>{asset.assetTag}</Link>{asset.model ? ` · ${asset.manufacturer ?? ""} ${asset.model}` : ""}</span><small>Condition: {stateLabel(asset.condition)}{asset.nextServiceAt ? ` · service due ${asset.nextServiceAt}` : ""}</small></div>
                   <StatusBadge tone={assetTone(asset.state)}>{stateLabel(asset.state)}</StatusBadge>
                 </div>
               )) : <p className="portfolioEmpty">No equipment assets recorded.</p>}

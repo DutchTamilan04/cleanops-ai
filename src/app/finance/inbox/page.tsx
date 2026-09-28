@@ -19,7 +19,7 @@ export default async function FinanceInboxPage(){
     <p>Director or assigned Area Manager access is required.</p></section></AppShell>;
   const {access,data}=loaded;
   return <AppShell authenticated currentPath="/finance" role={access.role} roleLabel={access.roleLabel}>
-      <SectionTabs items={getFinanceSectionTabs(access.canEditFinance)} currentPath="/finance/inbox" ariaLabel="Finance sections" />
+      <SectionTabs items={getFinanceSectionTabs(access)} currentPath="/finance/inbox" ariaLabel="Finance sections" />
       <h1>Finance Inbox</h1>
       <ExpenseInbox intakes={data.intakes.filter(i=>i.review_state!=="posted"&&i.review_state!=="rejected")}
         documents={data.documents} claims={data.claims} sites={access.sites}/>

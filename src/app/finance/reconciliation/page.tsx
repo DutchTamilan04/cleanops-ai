@@ -58,9 +58,6 @@ export default async function ReconciliationPage({ searchParams }: { searchParam
   const matchedByAllocation = new Map<string, number>();
   for (const link of links.filter((item) => item.state === "active")) matchedByAllocation.set(link.source_allocation_id, (matchedByAllocation.get(link.source_allocation_id) ?? 0) + link.matched_amount);
 
-  const needsAttention = sites.filter((row) => row.stale || row.unmatched_amount > 0).length;
-  const fullyMatched = sites.filter((row) => !row.stale && row.unmatched_amount === 0).length;
-
   const siteColumns: DataTableColumn<SiteRow>[] = [
     { key: "period", header: "Period", render: (row) => row.period_start },
     { key: "site", header: "Site", render: (row) => siteName.get(row.site_id) ?? "Assigned site" },
@@ -91,7 +88,7 @@ export default async function ReconciliationPage({ searchParams }: { searchParam
     { key: "category", header: "Category", render: (item) => sources.find((source) => source.id === item.source_row_id)?.category ?? "—" },
     { key: "amount", header: "Amount", align: "right", render: (item) => money(item.amount, sources.find((source) => source.id === item.source_row_id)?.currency) },
     { key: "remaining", header: "Remaining", align: "right", render: (item) => money(item.amount - (matchedByAllocation.get(item.id) ?? 0), sources.find((source) => source.id === item.source_row_id)?.currency) },
-    { key: "id", header: "Allocation", render: (item) => <code>{item.id.slice(0, 8)}</code> },
+    { key: "id", header: "Allocation", render: (item) => <code>{item.id}</code> },
     { key: "document", header: "Document", render: (item) => { const row = sources.find((source) => source.id === item.source_row_id); return row?.source_document_id ?? "—"; } },
   ];
 
@@ -102,7 +99,7 @@ export default async function ReconciliationPage({ searchParams }: { searchParam
     { key: "category", header: "Category", render: (item) => item.category },
     { key: "amount", header: "Amount", align: "right", render: (item) => money(item.amount, item.currency) },
     { key: "remaining", header: "Remaining", align: "right", render: (item) => money(item.amount - item.matched_amount, item.currency) },
-    { key: "id", header: "Entity", render: (item) => <code>{item.entity_id.slice(0, 8)}</code> },
+    { key: "id", header: "Entity", render: (item) => <code>{item.entity_id}</code> },
   ];
 
   const candidateColumns: DataTableColumn<CandidateRow>[] = [
@@ -110,8 +107,8 @@ export default async function ReconciliationPage({ searchParams }: { searchParam
     { key: "amount", header: "Amount", align: "right", render: (item) => money(item.amount, item.currency) },
     { key: "site", header: "Site", render: (item) => siteName.get(item.site_id) ?? "Site" },
     { key: "match", header: "Match type", render: (item) => <StatusBadge tone={item.ambiguous ? "pending" : "success"}>{item.ambiguous ? "Ambiguous — manual review" : "Unique — ready"}</StatusBadge> },
-    { key: "source", header: "Source", render: (item) => <code>{item.source_allocation_id.slice(0, 8)}</code> },
-    { key: "operational", header: "Operational", render: (item) => <code>{item.operational_entity_id.slice(0, 8)}</code> },
+    { key: "source", header: "Source", render: (item) => <code>{item.source_allocation_id}</code> },
+    { key: "operational", header: "Operational", render: (item) => <code>{item.operational_entity_id}</code> },
   ];
 
   const linkColumns: DataTableColumn<LinkRow>[] = [
@@ -122,7 +119,7 @@ export default async function ReconciliationPage({ searchParams }: { searchParam
     { key: "linked", header: "Linked at", render: (item) => item.linked_at },
     {
       key: "action", header: "Action", render: (item) => item.state === "active" && selected && selected.state !== "closed" ? (
-        <form action={reconcileFinance}>
+        <form action={reconcileFinance} className="reconciliationCorrection">
           <input type="hidden" name="kind" value="void" />
           <input type="hidden" name="periodId" value={selected.period_id} />
           <input type="hidden" name="linkId" value={item.id} />
@@ -134,22 +131,12 @@ export default async function ReconciliationPage({ searchParams }: { searchParam
   ];
 
   return <AppShell authenticated currentPath="/finance" role={access.role} roleLabel={access.roleLabel}>
-    <SectionTabs items={getFinanceSectionTabs(access.canEditFinance)} currentPath="/finance/reconciliation" ariaLabel="Finance sections" />
+    <SectionTabs items={getFinanceSectionTabs(access)} currentPath="/finance/reconciliation" ariaLabel="Finance sections" />
     <h1>Accounting reconciliation and period close</h1>
     <p>Accepted accounting imports are the source of truth. Operational postings must be linked and balanced before a Director closes an organization-wide month.</p>
     {params.error ? <Alert tone="danger">{params.error}</Alert> : null}
     {params.notice ? <Alert tone="success">{params.notice}</Alert> : null}
 
-    <KpiCardGrid>
-      <KpiCard label="Sites reporting" value={sites.length} />
-      <KpiCard label="Fully matched" value={fullyMatched} />
-      <KpiCard label="Needs attention" value={needsAttention} help={needsAttention > 0 ? "Stale or has unmatched cost" : undefined} />
-      <KpiCard
-        label="Current period"
-        value={selected ? selected.period_start : "Not opened"}
-        help={selected ? <StatusBadge tone={periodStateTone(selected.state)}>{selected.state}</StatusBadge> : undefined}
-      />
-    </KpiCardGrid>
 
     {access.canEditFinance ? <section className="financePanel">
       <div className="panelHeading"><div><p className="eyebrow">Director action</p><h2>Open a month</h2></div></div>
@@ -172,19 +159,19 @@ export default async function ReconciliationPage({ searchParams }: { searchParam
       </section>
 
       {selected ? <>
+        {selected.state === "closed" && selected.stale ? <Alert tone="pending">This closed period changed after close. A Director must reopen and review it before claiming a current close.</Alert> : null}
         <section className="financePanel">
           <div className="panelHeading"><div><p className="eyebrow">Selected period</p><h2>{selected.period_start} close controls</h2></div></div>
           <KpiCardGrid>
             <KpiCard label="Coverage" value={selected.metrics.coverage} />
             <KpiCard label="Accepted batches" value={`${selected.metrics.completeCoverageBatches} complete`} help={`${selected.metrics.incompleteBatches} incomplete`} />
+            <KpiCard label="Operational" value={money(selected.metrics.operationalAmount)} />
             <KpiCard label="Matched" value={money(selected.metrics.matchedAmount)} help={`Unmatched ${money(selected.metrics.unmatchedOperationalAmount)}`} />
             <KpiCard label="Unallocated accounting" value={money(selected.metrics.unallocatedSourceAmount)} />
           </KpiCardGrid>
-          {selected.metrics.ambiguousSourceCount > 0 || selected.metrics.invalidSourceCount > 0 || selected.metrics.invalidLinkCount > 0 ? (
-            <Alert tone="pending">
+          <p className="recordNote">
               Ambiguous {selected.metrics.ambiguousSourceCount} · invalid source {selected.metrics.invalidSourceCount} · invalid links {selected.metrics.invalidLinkCount}. A zero balance requires complete accepted coverage.
-            </Alert>
-          ) : null}
+          </p>
           <div className="financeRowActions">
             {selected.state !== "closed" ? <ActionButton label="Run deterministic matching" kind="auto" periodId={selected.period_id} /> : null}
             {(["open", "reopened"] as string[]).includes(selected.state) ? <ActionButton label="Move to review" kind="review" periodId={selected.period_id} /> : null}

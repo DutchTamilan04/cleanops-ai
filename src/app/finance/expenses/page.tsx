@@ -22,7 +22,7 @@ export default async function ExpensesPage(){
   const {access,data}=loaded;
   const siteNames=new Map(access.sites.map(site=>[site.id,site.name]));
   return <AppShell authenticated currentPath="/finance" role={access.role} roleLabel={access.roleLabel}>
-      <SectionTabs items={getFinanceSectionTabs(access.canEditFinance)} currentPath="/finance/expenses" ariaLabel="Finance sections" />
+      <SectionTabs items={getFinanceSectionTabs(access)} currentPath="/finance/expenses" ariaLabel="Finance sections" />
       <h1>Expenses and approved direct cost</h1>
       <p>Approved expense postings are operational costs. Reimbursement status is separate from the expense.</p>
       <KpiCardGrid ariaLabel="Expense claim counts">

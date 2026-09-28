@@ -16,7 +16,10 @@ export function CasinoSwitcher({
   label?: string;
 }) {
   if (sites.length <= 1 && !allowAll) {
-    return <span className="ui-casinoSwitcher-static">{sites[0]?.name ?? "No assigned casino"}</span>;
+    return <>
+      {sites[0] ? <input type="hidden" name={name} value={sites[0].id} /> : null}
+      <span className="ui-casinoSwitcher-static">{sites[0]?.name ?? "No assigned casino"}</span>
+    </>;
   }
   return (
     <label className="ui-field ui-casinoSwitcher">

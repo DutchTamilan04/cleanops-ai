@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { z } from "zod";
 import { AppShell } from "@/components/app-shell";
+import { Alert, Button, KpiCard, KpiCardGrid, SelectField, StatusBadge } from "@/components/ui";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getAppAccessContext } from "@/services/access-context";
 import { getContractDetail } from "@/integrations/finance/supabase-contracts";
@@ -15,6 +16,7 @@ const impactSchema = z.object({ token: z.string(), effectiveFrom: z.string(), ta
   schedules: z.number(), coverageRequirements: z.number(), slaDefinitions: z.number(),
   revenueEntries: z.number(), firstRevenuePeriod: z.string().nullable(),
   firstRevenueAmount: z.number(), currency: z.string().nullable(), supersedes: z.number() });
+const versionTone = (state: string): "success" | "pending" | "neutral" => state === "active" ? "success" : state === "approved" || state === "in_review" ? "pending" : "neutral";
 
 export default async function ContractReviewPage({ params, searchParams }: {
   params: Promise<{ id: string }>;
@@ -62,12 +64,18 @@ export default async function ContractReviewPage({ params, searchParams }: {
     detail?.obligations.some((item) => !item.zone_id) && "obligation zone",
   ].filter(Boolean) : [];
   return <AppShell authenticated currentPath="/finance" role={access.role} roleLabel={access.roleLabel}>
-    <section className="accessState">
+    <section className="accessState contractReview">
       <p className="eyebrow">Finance / contracts / review</p>
-      {!detail || !version ? <h1>Contract access restricted</h1> : <>
+      {!detail || !version ? <><h1>Contract access restricted</h1><Alert tone="restricted">This contract is unavailable to your role or assigned sites.</Alert></> : <>
         <h1>{detail.contract.code} · {detail.contract.name}</h1>
-        <p>{detail.contract.siteName} · version {version.version_number} · {version.state} · {version.source_type}</p>
-        {query.error && <p role="alert">{query.error}</p>}
+        <p>{detail.contract.siteName} · version {version.version_number} · <StatusBadge tone={versionTone(version.state)}>{version.state}</StatusBadge> · {version.source_type}</p>
+        {query.error && <Alert tone="danger">{query.error}</Alert>}
+        <KpiCardGrid ariaLabel="Saved contract version items">
+          {canDraft && <KpiCard label="Commercial terms" value={detail.terms.length}/>}
+          <KpiCard label="Staffing rules" value={detail.staffing.length}/>
+          <KpiCard label="Service obligations" value={detail.obligations.length}/>
+          <KpiCard label="SLA definitions" value={detail.sla.length}/>
+        </KpiCardGrid>
         <h2>Identity and dates</h2>
         <p>Effective {version.effective_from ?? "unresolved"}{version.effective_to ? ` through ${version.effective_to}` : " onward"}.</p>
         {version.renewal_notes && <p>Renewal: {version.renewal_notes}</p>}
@@ -86,11 +94,11 @@ export default async function ContractReviewPage({ params, searchParams }: {
             {canDraft && version.state === "draft" && <form action={assignContractObligationZone}>
               <input type="hidden" name="contractId" value={detail.contract.id} />
               <input type="hidden" name="obligationId" value={item.id} />
-              <label>Zone for {item.name} <select name="zoneId" defaultValue={item.zone_id ?? ""} required>
+              <SelectField label={`Zone for ${item.name}`} name="zoneId" defaultValue={item.zone_id ?? ""} required>
                 <option value="" disabled>Select zone</option>
                 {detail.zones.map((zone) => <option key={zone.id} value={zone.id}>{zone.name}</option>)}
-              </select></label>
-              <button type="submit">Save obligation zone</button>
+              </SelectField>
+              <Button type="submit">Save obligation zone</Button>
             </form>}
           </li>)}</ul>
           : <p>No recurring obligation saved.</p>}
@@ -103,25 +111,33 @@ export default async function ContractReviewPage({ params, searchParams }: {
           canReadDocuments={canDraft}
           canReview={version.state === "draft"} operationalOnly={!canDraft}
           documents={documents} proposals={proposals} decisions={decisions} />
-        {missing.length > 0 && <p role="alert">Resolve before approval: {missing.join(", ")}.</p>}
+        {missing.length > 0 && <Alert tone="pending">Resolve before approval: {missing.join(", ")}.</Alert>}
         {version.state === "draft" && canDraft && <>
           <p><Link href={`/finance/contracts/new?draftId=${detail.contract.id}&step=2`}>Continue editing draft</Link></p>
-          {pendingMaterial > 0 && <p role="alert">Review {pendingMaterial} source proposal{pendingMaterial === 1 ? "" : "s"} before submission.</p>}
+          {pendingMaterial > 0 && <Alert tone="pending">Review {pendingMaterial} source proposal{pendingMaterial === 1 ? "" : "s"} before submission.</Alert>}
           <form action={transitionContract}><input type="hidden" name="contractId" value={detail.contract.id} />
-            <input type="hidden" name="transition" value="submit" /><button type="submit" disabled={pendingMaterial > 0}>Submit for review</button></form>
+            <input type="hidden" name="transition" value="submit" /><Button variant="primary" type="submit" disabled={pendingMaterial > 0}>Submit for review</Button></form>
         </>}
         {version.state === "in_review" && canDraft && <form action={returnContractToDraft}>
           <input type="hidden" name="contractId" value={detail.contract.id} />
           <label>Revision reason <textarea name="reason" minLength={5} maxLength={500} required /></label>
-          <button type="submit">Return to draft for revision</button>
+          <Button type="submit">Return to draft for revision</Button>
         </form>}
         {(version.state === "draft" || version.state === "in_review") && director && <form action={transitionContract}>
           <input type="hidden" name="contractId" value={detail.contract.id} />
-          <input type="hidden" name="transition" value="approve" /><button type="submit">Approve this version</button>
+          <input type="hidden" name="transition" value="approve" /><Button variant="primary" type="submit">Approve this version</Button>
         </form>}
         {version.state === "approved" && director && <>
           <h2>Activation impact preview</h2>
           {impact ? <>
+            <Alert tone="pending">Activation has not happened. Confirm the impact before creating downstream records effective {impact.effectiveFrom}.</Alert>
+            <KpiCardGrid ariaLabel="Activation impact counts">
+              <KpiCard label="Tasks" value={impact.tasks}/>
+              <KpiCard label="Schedules" value={impact.schedules}/>
+              <KpiCard label="Coverage requirements" value={impact.coverageRequirements}/>
+              <KpiCard label="SLA definitions" value={impact.slaDefinitions}/>
+              <KpiCard label="Expected revenue entries" value={impact.revenueEntries}/>
+            </KpiCardGrid>
             <p>Effective {impact.effectiveFrom}. Create {impact.tasks} tasks, {impact.schedules} schedules,
               {` ${impact.coverageRequirements}`} shift coverage requirements, {impact.slaDefinitions} SLA definitions and {impact.revenueEntries} expected revenue entries.</p>
             <p>First expected revenue: {impact.firstRevenueAmount} {impact.currency ?? ""} for {impact.firstRevenuePeriod ?? "no fixed-fee period"}.</p>
@@ -129,13 +145,13 @@ export default async function ContractReviewPage({ params, searchParams }: {
             <form action={transitionContract}><input type="hidden" name="contractId" value={detail.contract.id} />
               <input type="hidden" name="transition" value="activate" />
               <input type="hidden" name="previewToken" value={impact.token} />
-              <button type="submit">Activate approved version</button></form>
-          </> : <p role="alert">Activation preview is unavailable. No changes have been applied.</p>}
+              <Button variant="primary" type="submit">Activate approved version</Button></form>
+          </> : <Alert tone="danger">Activation preview is unavailable. No changes have been applied.</Alert>}
         </>}
         {version.state === "active" && canDraft && <form action={transitionContract}>
           <input type="hidden" name="contractId" value={detail.contract.id} />
           <input type="hidden" name="transition" value="amend" />
-          <button type="submit">Create future amendment draft</button></form>}
+          <Button type="submit">Create future amendment draft</Button></form>}
       </>}
       <p><Link href="/finance/contracts">Back to contract register</Link></p>
     </section>

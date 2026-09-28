@@ -70,7 +70,8 @@ describe("CLEAN-039 hosted finance personas", () => {
   });
 
   it("reconstructs the existing hosted version 7 grants for guarded reset", () => {
-    const prior = buildScenarioPlan({ ...showcase, generatorVersion: 7 }, tornado);
+    const prior = buildScenarioPlan({ ...showcase, generatorVersion: 7,
+      modules: { ...showcase.modules, supplies: false, equipment: false } }, tornado);
     const assigned = (key) => prior.expected.roleSiteAccess.find((entry) => entry.persona === key);
     expect(prior.personas).toHaveLength(17);
     expect(assigned("darrel-area").siteIds).toEqual([prior.sites[2].id]);
@@ -78,10 +79,35 @@ describe("CLEAN-039 hosted finance personas", () => {
     expect(assigned("scenario-client")).toBeUndefined();
   });
 
+  it("keeps the hosted version 8 run free of newly added source rows", () => {
+    const prior = buildScenarioPlan({ ...showcase, generatorVersion: 8,
+      modules: { ...showcase.modules, supplies: false, equipment: false } }, tornado);
+    expect(prior.supplyCases).toBeNull();
+    expect(prior.equipmentCases).toBeNull();
+    expect(prior.expenseCases).toHaveLength(9);
+    expect(prior.expected.controlTotals.finance.approvedLabourCost).toBe("789.00");
+  });
+
   it("rejects a persona assignment outside the scenario site set", () => {
     const invalid = { ...tornado, personas: tornado.personas.map((persona) =>
       persona.key === "darrel-area" ? { ...persona, siteIndex: 99 } : persona) };
     expect(() => buildScenarioPlan(showcase, invalid)).toThrow("outside this scenario");
+  });
+});
+
+describe("CLEAN-015 version 9 finance source modules", () => {
+  const showcase = JSON.parse(readFileSync("fixtures/scenarios/finance-showcase/scenario.json", "utf8"));
+  const tornado = JSON.parse(readFileSync("fixtures/reference/tornado-v1.json", "utf8"));
+
+  it("derives request, stock and asset controls without inserting dashboard totals", () => {
+    const plan = buildScenarioPlan(showcase, tornado);
+    const another = buildScenarioPlan(showcase, tornado);
+    expect(JSON.stringify(plan)).toBe(JSON.stringify(another));
+    expect(plan.supplyCases.requests.map(item => item.packCount * item.pricePerPack)).toEqual([420, 6500]);
+    expect(plan.expected.supplies.cases.map(item => item.closingBaseQuantity)).toEqual([130, 50]);
+    expect(plan.equipmentCases.repairs.map(item => item.expenseKey)).toEqual(["repair", "august-repair"]);
+    expect(plan.expected.equipment.repairs).toHaveLength(2);
+    expect(plan.expected.controlTotals.finance.expenseByCategory.supplies).toBe("7094.58");
   });
 });
 

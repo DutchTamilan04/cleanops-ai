@@ -17,6 +17,7 @@ export function SectionTabs({
   ariaLabel: string;
 }) {
   const visible = items.filter((item) => !item.hidden);
+  if (!visible.length) return null;
   return (
     <nav className="ui-sectionTabs" aria-label={ariaLabel}>
       <ul>

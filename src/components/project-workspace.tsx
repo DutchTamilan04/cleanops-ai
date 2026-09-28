@@ -3,6 +3,7 @@
 import { useState, useSyncExternalStore, useTransition } from "react";
 import Link from "next/link";
 import { performProjectAction } from "@/app/finance/projects/actions";
+import { Alert, Button, KpiCard, KpiCardGrid, SelectField, StatusBadge, TextField } from "@/components/ui";
 
 export type ProjectSummary = {
   project_id: string; site_id: string; project_code: string; name: string; state: string;
@@ -29,91 +30,95 @@ export function ProjectWorkspace({ projects, sites, contracts, sources, director
   // The forms use client handlers, so native submission must wait for hydration.
   const hydrated = useSyncExternalStore(subscribeToHydration, clientReady, serverReady);
   const controlsDisabled = !hydrated || pending;
-  const [message, setMessage] = useState("");
+  const [notice, setNotice] = useState<{ ok: boolean; message: string } | null>(null);
   const [site, setSite] = useState("all");
   const [state, setState] = useState("all");
   const [period, setPeriod] = useState("");
   const [newSite, setNewSite] = useState(sites[0]?.id ?? "");
   const money = (value: number | null, currency: string) => value === null ? "Pending" : new Intl.NumberFormat("en-CA", { style: "currency", currency }).format(value);
   function run(input: Parameters<typeof performProjectAction>[0]) {
-    start(async () => { const result = await performProjectAction(input); setMessage(result.message); });
+    start(async () => { const result = await performProjectAction(input); setNotice(result); });
   }
   return <>
-    <section className="reviewCard"><h2>Create one-off project</h2>
+    <section className="reviewCard projectPanel"><h2>Create one-off project</h2>
       <p>Operational draft; a Director approves the commercial terms before it becomes active.</p>
-      <form onSubmit={(event) => { event.preventDefault(); const form = new FormData(event.currentTarget);
+      <form className="projectForm" onSubmit={(event) => { event.preventDefault(); const form = new FormData(event.currentTarget);
         run({ kind: "create", siteId: String(form.get("siteId")), code: String(form.get("code")), name: String(form.get("name")), scope: String(form.get("scope")),
           contractId: String(form.get("contractId") || "") || null }); }}>
-        <label>Casino <select name="siteId" value={newSite} onChange={event => setNewSite(event.target.value)} required>{sites.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
-        <label>Parent contract <select name="contractId"><option value="">Standalone project</option>{contracts.filter(item => item.site_id === newSite).map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
-        <label>Project code <input name="code" required maxLength={40} placeholder="HASTINGS-DEEP-CLEAN" /></label>
-        <label>Name <input name="name" required maxLength={160} /></label>
+        <SelectField label="Casino" name="siteId" value={newSite} onChange={event => setNewSite(event.target.value)} required>{sites.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</SelectField>
+        <SelectField label="Parent contract" name="contractId"><option value="">Standalone project</option>{contracts.filter(item => item.site_id === newSite).map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</SelectField>
+        <TextField label="Project code" name="code" required maxLength={40} placeholder="HASTINGS-DEEP-CLEAN" />
+        <TextField label="Name" name="name" required maxLength={160} />
         <label>Scope <textarea name="scope" required maxLength={2000} /></label>
-        <button className="reviewButton reviewButton-primary" disabled={controlsDisabled}>Create draft</button>
+        <Button variant="primary" disabled={controlsDisabled}>Create draft</Button>
       </form>
     </section>
-    <section className="reviewCard"><h2>Project contribution</h2>
+    <section className="reviewCard projectPanel"><h2>Project contribution</h2>
       <p>Direct contribution uses approved operational cost. Accounting recognition is shown separately; final margin appears only after a complete import and Director cost close.</p>
-      <label>Casino <select value={site} onChange={event => setSite(event.target.value)}><option value="all">All assigned casinos</option>{sites.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
-      <label>Status <select value={state} onChange={event => setState(event.target.value)}><option value="all">All</option>{["draft","active","completed","cancelled"].map(item => <option key={item}>{item}</option>)}</select></label>
-      <label>Project month <input type="month" value={period} onChange={event => setPeriod(event.target.value)} /></label>
+      <KpiCardGrid ariaLabel="Project counts"><KpiCard label="Projects" value={projects.length}/><KpiCard label="Active" value={projects.filter(project => project.state === "active").length}/><KpiCard label="Pending contribution" value={projects.filter(project => project.recognized_contribution === null).length}/></KpiCardGrid>
+      <div className="projectFilters"><SelectField label="Casino" value={site} onChange={event => setSite(event.target.value)}><option value="all">All assigned casinos</option>{sites.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</SelectField>
+      <SelectField label="Status" value={state} onChange={event => setState(event.target.value)}><option value="all">All</option>{["draft","active","completed","cancelled"].map(item => <option key={item}>{item}</option>)}</SelectField>
+      <TextField label="Project month" type="month" value={period} onChange={event => setPeriod(event.target.value)} /></div>
       {projects.filter(project => (site === "all" || project.site_id === site) && (state === "all" || project.state === state)
-        && (!period || (!project.starts_on || project.starts_on.slice(0,7) <= period) && (!project.ends_on || project.ends_on.slice(0,7) >= period))).map(project => <article className="reviewCard" key={project.project_id}>
-        <h3>{project.name} <span className="recordLabel">{project.project_code} · {project.state}</span></h3>
-        <p>{sites.find(item => item.id === project.site_id)?.name} · {project.pricing_model ?? "Terms pending"} · {project.completeness}</p>
+        && (!period || (!project.starts_on || project.starts_on.slice(0,7) <= period) && (!project.ends_on || project.ends_on.slice(0,7) >= period))).map(project => <article className="reviewCard projectCard" key={project.project_id}>
+        <h3>{project.name} <StatusBadge tone={project.state === "active" || project.state === "completed" ? "success" : project.state === "cancelled" ? "danger" : "pending"}>{project.project_code} · {project.state}</StatusBadge></h3>
+        <p>{sites.find(item => item.id === project.site_id)?.name} · {project.pricing_model ?? "Terms pending"} · <StatusBadge tone={project.completeness === "complete" ? "success" : "pending"}>{project.completeness.replaceAll("_", " ")}</StatusBadge></p>
         <p>{project.scope}</p>
         <p>Accounting sources: {project.recognized_source_count ?? 0} recognized · {project.unresolved_source_count ?? 0} unresolved · {project.incomplete_source_count ?? 0} incomplete</p>
-        <dl><dt>Expected revenue</dt><dd>{money(project.expected_revenue, project.currency)}</dd>
-          <dt>Invoiced</dt><dd>{money(project.invoiced_revenue, project.currency)}</dd>
-          <dt>Accounting recognized</dt><dd>{money(project.recognized_revenue, project.currency)}</dd>
+        <KpiCardGrid ariaLabel={`${project.name} contribution`}>
+          <KpiCard label="Expected revenue" value={money(project.expected_revenue, project.currency)} unavailable={project.expected_revenue === null} help={project.expected_revenue === null ? "Terms pending" : undefined}/>
+          <KpiCard label="Accounting recognized" value={money(project.recognized_revenue, project.currency)}/>
+          <KpiCard label="Direct cost" value={money(project.direct_cost, project.currency)}/>
+          <KpiCard label="Recognized contribution" value={money(project.recognized_contribution, project.currency)} unavailable={project.recognized_contribution === null} help={project.recognized_contribution === null ? "Accounting and cost close pending" : undefined}/>
+        </KpiCardGrid>
+        {project.recognized_contribution === null && <Alert tone="pending">Recognized contribution remains pending until accounting and cost close are complete.</Alert>}
+        <dl className="projectDetailMetrics"><dt>Invoiced</dt><dd>{money(project.invoiced_revenue, project.currency)}</dd>
           <dt>Approved labour</dt><dd>{money(project.labour_cost, project.currency)}</dd>
           <dt>Expense cost</dt><dd>{money(project.expense_cost, project.currency)}</dd>
           <dt>Issued supplies</dt><dd>{money(project.supply_cost, project.currency)}</dd>
-          <dt>Direct cost</dt><dd>{money(project.direct_cost, project.currency)}</dd>
           <dt>Expected contribution</dt><dd>{money(project.expected_contribution, project.currency)}</dd>
-          <dt>Recognized contribution</dt><dd>{money(project.recognized_contribution, project.currency)}</dd>
           <dt>Recognized margin</dt><dd>{project.recognized_margin_pct === null ? "Pending complete accounting and cost close" : `${project.recognized_margin_pct}%`}</dd></dl>
         <details><summary>Source drill-through and allocation</summary>
           <p>Link approved records from the same casino. Equipment purchases require asset review and are excluded from direct cost.</p>
           {sources.filter(source => source.project_id === project.project_id).map(source => <p key={source.id}>{source.kind}: {source.label} · {money(source.amount, project.currency)} · source {source.id} {source.href && <Link href={source.href}>Open source</Link>}</p>)}
-          {director && <form onSubmit={event => { event.preventDefault(); const form = new FormData(event.currentTarget);
+          {director && <form className="projectForm" onSubmit={event => { event.preventDefault(); const form = new FormData(event.currentTarget);
             run({ kind: "link", projectId: project.project_id, sourceType: String(form.get("type")) as "time" | "expense" | "inventory_issue" | "accounting", sourceId: String(form.get("source")) }); }}>
-            <select name="type" required>{["time","expense","inventory_issue","accounting"].map(type => <option key={type}>{type}</option>)}</select>
-            <input name="source" required placeholder="Source record ID" /><button disabled={controlsDisabled}>Link source</button>
+            <SelectField label="Source type" name="type" required>{["time","expense","inventory_issue","accounting"].map(type => <option key={type}>{type}</option>)}</SelectField>
+            <TextField label="Source record ID" name="source" required placeholder="Source record ID" /><Button disabled={controlsDisabled}>Link source</Button>
           </form>}
         </details>
-        {project.state === "draft" && <form onSubmit={event => { event.preventDefault(); const form = new FormData(event.currentTarget);
+        {project.state === "draft" && <form className="projectForm" onSubmit={event => { event.preventDefault(); const form = new FormData(event.currentTarget);
           run({ kind: "scope", projectId: project.project_id, name: String(form.get("name")), scope: String(form.get("scope")),
             contractId: String(form.get("contractId") || "") || null }); }}>
-          <label>Name <input name="name" defaultValue={project.name} required maxLength={160} /></label>
+          <TextField label="Name" name="name" defaultValue={project.name} required maxLength={160} />
           <label>Scope <textarea name="scope" defaultValue={project.scope} required maxLength={2000} /></label>
-          <label>Parent contract <select name="contractId" defaultValue={project.contract_id ?? ""}><option value="">Standalone project</option>
-            {contracts.filter(item => item.site_id === project.site_id).map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
-          <button disabled={controlsDisabled}>Save draft scope</button>
+          <SelectField label="Parent contract" name="contractId" defaultValue={project.contract_id ?? ""}><option value="">Standalone project</option>
+            {contracts.filter(item => item.site_id === project.site_id).map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</SelectField>
+          <Button disabled={controlsDisabled}>Save draft scope</Button>
         </form>}
-        {director && project.state === "draft" && <form onSubmit={event => { event.preventDefault(); const form = new FormData(event.currentTarget);
+        {director && project.state === "draft" && <form className="projectForm" onSubmit={event => { event.preventDefault(); const form = new FormData(event.currentTarget);
           run({ kind: "approve", projectId: project.project_id, model: String(form.get("model")) as "fixed" | "hourly", amount: Number(form.get("amount")) }); }}>
-          <label>Pricing <select name="model"><option value="fixed">Fixed quote</option><option value="hourly">Hourly billing</option></select></label>
-          <label>Quote or hourly rate <input name="amount" type="number" min="0" step="0.01" required /></label><button disabled={controlsDisabled}>Approve terms and activate</button>
+          <SelectField label="Pricing" name="model"><option value="fixed">Fixed quote</option><option value="hourly">Hourly billing</option></SelectField>
+          <TextField label="Quote or hourly rate" name="amount" type="number" min="0" step="0.01" required /><Button variant="primary" disabled={controlsDisabled}>Approve terms and activate</Button>
         </form>}
         {director && project.state !== "draft" && project.state !== "cancelled" && <>
-          <form onSubmit={event => { event.preventDefault(); const form = new FormData(event.currentTarget);
+          <form className="projectForm" onSubmit={event => { event.preventDefault(); const form = new FormData(event.currentTarget);
             run({ kind: "invoice", projectId: project.project_id, reference: String(form.get("reference")), date: String(form.get("date")), amount: Number(form.get("amount")) }); }}>
-            <label>Invoice reference <input name="reference" required /></label><label>Date <input name="date" type="date" required /></label>
-            <label>Amount <input name="amount" type="number" min="0.01" step="0.01" required /></label><button disabled={controlsDisabled}>Record invoice</button>
+            <TextField label="Invoice reference" name="reference" required /><TextField label="Date" name="date" type="date" required />
+            <TextField label="Amount" name="amount" type="number" min="0.01" step="0.01" required /><Button disabled={controlsDisabled}>Record invoice</Button>
           </form>
-          {project.pricing_model === "hourly" && <form onSubmit={event => { event.preventDefault(); const form = new FormData(event.currentTarget);
+          {project.pricing_model === "hourly" && <form className="projectForm" onSubmit={event => { event.preventDefault(); const form = new FormData(event.currentTarget);
             run({ kind: "billable", projectId: project.project_id, timeEntryId: String(form.get("time")), hours: Number(form.get("hours")) }); }}>
-            <label>Approved time ID <input name="time" required /></label><label>Billable hours <input name="hours" type="number" step="0.000001" min="0.000001" required /></label>
-            <button disabled={controlsDisabled}>Approve billable hours</button>
+            <TextField label="Approved time ID" name="time" required /><TextField label="Billable hours" name="hours" type="number" step="0.000001" min="0.000001" required />
+            <Button disabled={controlsDisabled}>Approve billable hours</Button>
           </form>}
-          <button disabled={controlsDisabled} onClick={() => run({ kind: "complete", projectId: project.project_id, complete: project.state !== "completed" })}>
-            {project.state === "completed" ? "Reopen cost close" : "Mark costs complete"}</button>
-          {project.state === "active" && <button disabled={controlsDisabled} onClick={() => run({ kind: "cancel", projectId: project.project_id })}>Cancel project</button>}
+          <Button type="button" disabled={controlsDisabled} onClick={() => run({ kind: "complete", projectId: project.project_id, complete: project.state !== "completed" })}>
+            {project.state === "completed" ? "Reopen cost close" : "Mark costs complete"}</Button>
+          {project.state === "active" && <Button variant="danger" type="button" disabled={controlsDisabled} onClick={() => run({ kind: "cancel", projectId: project.project_id })}>Cancel project</Button>}
         </>}
       </article>)}
-      {!projects.length && <p>No projects yet.</p>}
+      {!projects.length && <Alert tone="info">No projects yet.</Alert>}
     </section>
-    {message && <p role="status">{message}</p>}
+    {notice && <Alert tone={notice.ok ? "success" : "danger"}>{notice.message}</Alert>}
   </>;
 }

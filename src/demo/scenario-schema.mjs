@@ -16,7 +16,7 @@ export const scenarioSchema = z.object({
   schemaVersion: z.literal(1),
   scenarioId: z.string().regex(/^[a-z][a-z0-9-]{2,63}$/),
   seed: z.number().int().nonnegative().max(0xffffffff),
-  generatorVersion: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5), z.literal(6), z.literal(7), z.literal(8)]),
+  generatorVersion: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5), z.literal(6), z.literal(7), z.literal(8), z.literal(9)]),
   clock: z.object({ start: date, end: date, timezone: z.string().min(3) }).strict(),
   organization: z.object({ name: z.string().min(2).max(120), siteCount: z.number().int().min(1).max(20), workerCount: z.number().int().min(1).max(300) }).strict(),
   referencePack: z.enum(["fictional-v1", "tornado-v1"]),
@@ -29,8 +29,10 @@ export const scenarioSchema = z.object({
   if (value.modules.time && value.generatorVersion < 4) context.addIssue({ code: "custom", path: ["generatorVersion"], message: "time requires generatorVersion 4 or later" });
   if (value.modules.projects && (value.generatorVersion < 5 || !value.modules.time || !value.modules.expenses)) context.addIssue({ code: "custom", path: ["modules", "projects"], message: "projects require generatorVersion 5 with time and expenses" });
   if (value.modules.reconciliation && (value.generatorVersion < 6 || !value.modules.projects)) context.addIssue({ code: "custom", path: ["modules", "reconciliation"], message: "reconciliation requires generatorVersion 6 with projects" });
+  if (value.modules.supplies && (value.generatorVersion < 9 || !value.modules.expenses)) context.addIssue({ code: "custom", path: ["modules", "supplies"], message: "supplies require generatorVersion 9 with expenses" });
+  if (value.modules.equipment && (value.generatorVersion < 9 || !value.modules.expenses)) context.addIssue({ code: "custom", path: ["modules", "equipment"], message: "equipment requires generatorVersion 9 with expenses" });
   for (const [key, enabled] of Object.entries(value.modules)) {
-    if (key !== "base" && key !== "contracts" && key !== "expenses" && key !== "time" && key !== "projects" && key !== "reconciliation" && enabled) context.addIssue({ code: "custom", path: ["modules", key], message: `${key} adapter is not implemented` });
+    if (!["base", "contracts", "expenses", "time", "projects", "reconciliation", "supplies", "equipment"].includes(key) && enabled) context.addIssue({ code: "custom", path: ["modules", key], message: `${key} adapter is not implemented` });
   }
 });
 
@@ -47,7 +49,7 @@ export const referenceSchema = z.object({
     displayName: z.string().min(2),
     role: z.enum(["organization_administrator", "area_manager", "operations_manager", "site_supervisor", "cleaner", "client_viewer"]),
     siteIndex: z.number().int().nonnegative().optional(),
-    minGeneratorVersion: z.number().int().min(1).max(8).optional(),
+    minGeneratorVersion: z.number().int().min(1).max(9).optional(),
   }).strict()).min(1),
 }).strict().superRefine((value, context) => {
   if (new Set(value.personas.map((persona) => persona.key)).size !== value.personas.length) context.addIssue({ code: "custom", path: ["personas"], message: "persona keys must be unique" });

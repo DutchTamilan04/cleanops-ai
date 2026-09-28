@@ -23,12 +23,12 @@ export function DataTable<T>({
   if (!rows.length) return <p className="recordNote">{emptyMessage}</p>;
   return (
     <div className="ui-dataTable">
-      {caption ? <p className="ui-dataTable-caption">{caption}</p> : null}
       <table>
+        {caption ? <caption className="ui-dataTable-caption">{caption}</caption> : null}
         <thead>
           <tr>
             {columns.map((column) => (
-              <th key={column.key} data-align={column.align === "right" ? "right" : undefined}>
+              <th scope="col" key={column.key} data-align={column.align === "right" ? "right" : undefined}>
                 {column.header}
               </th>
             ))}

@@ -1,125 +1,62 @@
-# CleanOps AI — Phase-0 context pack
+# CleanOps AI
 
-A repo-ready specification for commercial cleaning operations in casinos and other
-24/7 facilities. Principle: digitize the existing workflow before replacing it.
+CleanOps is a role- and site-scoped operations and finance application for cleaning teams in casinos and other continuous-service facilities. This repository contains a running Next.js application, Supabase migrations and tests, synthetic scenario tooling, and browser UAT. The highest-priority product track is **Tornado operational finance** ([issue #61](https://github.com/niru2015/cleanops-ai/issues/61)).
 
-**Status:** CLEAN-001 through CLEAN-011, CLEAN-026 and CLEAN-027 are complete, plus the role-scoped casino demo (PRs #43-#46). The hosted deployment includes temporary,
-role-scoped demo access for the synthetic tenant. Live WhatsApp and OpenAI providers remain disabled
-until separate provider readiness and business approval gates pass.
+**Reviewed baseline:** `main` at `7d16984` on 2026-09-28. Code and migrations establish implemented behavior; a merged branch, passing CI or a synthetic demo does not establish a customer production pilot. Demo people and transactions are synthetic. Reference casino/equipment names follow [ADR 008](docs/adr/008-real-casino-names-public-repo.md) and do not assert a customer relationship.
 
-Start with [AGENTS.md](AGENTS.md) and [docs/INDEX.md](docs/INDEX.md).
-Build order and gates: [ROADMAP](docs/plans/ROADMAP.md).
-Completed plans: [CLEAN-001](docs/plans/completed/CLEAN-001.md),
-[CLEAN-002](docs/plans/completed/CLEAN-002.md),
-[CLEAN-003](docs/plans/completed/CLEAN-003.md),
-[CLEAN-004](docs/plans/completed/CLEAN-004.md) and
-[CLEAN-005](docs/plans/completed/CLEAN-005.md),
-[CLEAN-006](docs/plans/completed/CLEAN-006.md),
-[CLEAN-007](docs/plans/completed/CLEAN-007.md),
-[CLEAN-008](docs/plans/completed/CLEAN-008.md),
-[CLEAN-009](docs/plans/completed/CLEAN-009.md),
-[CLEAN-010](docs/plans/completed/CLEAN-010.md), [CLEAN-011](docs/plans/completed/CLEAN-011.md),
-[CLEAN-026](docs/plans/completed/CLEAN-026.md) and [CLEAN-027](docs/plans/completed/CLEAN-027.md).
-The manager-requirements backlog (Tornado Phase 2) is tracked in issue #24; its per-issue status is in the ROADMAP.
+## Where to start
 
-## Local development
+| Need | Guide |
+| --- | --- |
+| New customer finance setup and role training | [Finance operator and customer training](docs/finance/README.md) → [new customer runbook](docs/finance/NEW_CUSTOMER_SETUP.md) |
+| Implemented roadmap and live issue review | [Roadmap and release gates](docs/plans/ROADMAP.md) |
+| Agent/developer context | [AGENTS.md](AGENTS.md) → [documentation index](docs/INDEX.md) |
+| Synthetic Gate A presenter/UAT evidence | [Gate A finance training](docs/demo/GATE_A_FINANCE_TRAINING.md), [finance UAT](docs/demo/FINANCE_UAT.md), [Tornado recorder](TORNADO_DEMO.md) |
+| Data and authorization details | [Data mapping](docs/DATA_MAPPING.md), [dictionary](docs/DATA_DICTIONARY.md), [process flows](docs/PROCESS_FLOWS.md), [security](docs/SECURITY.md) |
 
-Requirements: Node.js 24.14.0 (see `.nvmrc`) and npm 11.9.0.
+## What is implemented on `main`
+
+| Area | Current application path | Boundary |
+| --- | --- | --- |
+| Identity and site access | `/login`; active membership and site-grant checks | No self-service customer tenant setup or multi-organization selector. |
+| Casino operations | `/operations`, `/mobile`, `/review` | Staffing/coverage, task evidence, Mock AI suggestion and explicit human review; selected walkthrough data remains synthetic. |
+| Incidents and reporting | `/incidents`, `/reports`, `/reports/client` | Neutral incident/equipment intake and explicitly released, redacted client report. |
+| Finance intake | `/mobile/expenses`, `/finance/inbox`, `/finance/expenses` | Private receipt, advisory extraction, human resolution and Director-only posting. |
+| Contract to expected revenue | `/finance/contracts`, `/finance/contracts/new`, contract review | Manual or private document draft, human clause decisions, Director approval/activation, version-linked future obligations. |
+| Time, rates and projects | `/finance/time`, `/finance/rates`, `/finance/projects` | Operational time review, Director-only effective rates/cost posting and source-linked one-off contribution. |
+| Accounting and management | `/finance`, `/finance/reconciliation` | Manual CSV preview/acceptance, matching and period close; source-backed site comparison and human review prompts. No live Sage sync. |
+| Supplies and equipment care | `/supplies`, `/equipment`, `/equipment/[id]` | Request/approval/stock history, inspections, maintenance and links to **existing** approved expense postings. |
+| Synthetic demo | `demo:generate`, `demo:assert`, `demo:tornado` | Protected scenario/replay and recorded UAT; not a customer-data import or live provider proof. |
+
+Official WhatsApp and Make adapter code exists, but live customer transport and existing-group access require separate provider/pilot verification. Open gaps and deferred media work are tracked in the [roadmap](docs/plans/ROADMAP.md#outstanding-issue-and-release-gates).
+
+## Local development and verification
+
+Use Node.js 24.14.0 (`.nvmrc`), npm 11.9.0 and a Docker-compatible runtime for local Supabase.
 
 ```bash
 npm ci
 cp .env.example .env.local
+npm run db:start
+npm run db:reset
 npm run dev
 ```
 
-## Local database
-
-The canonical database workflow requires a Docker-compatible runtime. The pinned Supabase
-CLI, migrations and deterministic synthetic seed are included in this repository.
-
-```bash
-npm run db:start
-npm run db:reset
-npm run test:db
-npm run db:stop
-```
-
-After `db:start`, copy the local publishable key from `npm run db:status` into `.env.local`.
-For CLEAN-003, also copy the local secret key and set a private demo token of at least 24
-characters. Keep `CLEANOPS_DEMO_INGRESS_ENABLED=false` except while exercising the simulator.
-The compatibility check below executes the same migration and RLS boundary cases against a
-temporary PostgreSQL 17+ cluster when Docker is unavailable:
-
-```bash
-npm run test:db:postgres
-```
-
-## Simulated message ingress
-
-With local Supabase and the app running, enable the simulator in `.env.local`. POST a strict
-synthetic batch to `/api/demo/messages` with `Authorization: Bearer <demo token>`. A `202`
-means each account-scoped envelope and pending job is durable. Process one pending job with:
-
-```bash
-npm run worker:messages
-```
-
-Retry a terminal failed job with `npm run worker:messages -- --retry <job-id>`. These routes
-return `404` in production and do not connect to WhatsApp. See
-[the ingress contract](docs/integrations/WHATSAPP.md) for the payload and reliability rules.
-
-## Simulated operational evidence
-
-After a local database reset and with the app running, replay the synthetic 23:15 BEFORE and
-23:29 AFTER records into the private `operational-evidence` bucket:
-
-```bash
-npm run demo:replay-evidence
-```
-
-The replay uses a tiny synthetic image, verified Worker 182 mapping and 30-minute Restroom B
-context. It produces one linked revision/pair and is safe to replay. Reconcile a staged object
-left by a simulated crash with `npm run worker:messages -- --reconcile-evidence`.
-
-Authenticated evidence reads request a 60-second URL from
-`/api/evidence/:evidenceId/signed-url`; the server checks row-level access before signing.
-Supervisors resolve or ignore queue records through `/api/evidence/:evidenceId/resolution`.
-
-Verification:
+After `db:start`, copy the local publishable key shown by `npm run db:status` into `.env.local`. Keep secret/service-role keys server-side. Synthetic demo ingress is off unless explicitly enabled in a local environment; see [WhatsApp integration](docs/integrations/WHATSAPP.md). Do not point local reset or scenario commands at a customer database.
 
 ```bash
 npm run typecheck
 npm run lint
 npm test
 npm run build
+npm run test:db
 npm run test:e2e
 ```
 
-CLEAN-001 creates the responsive application shell. CLEAN-002 adds the local Supabase tenant,
-access and work foundation. CLEAN-003 adds server-only, demo-gated durable ingress and a leased
-local worker. CLEAN-004 adds private synthetic media, deterministic resolution and audited
-evidence decisions. CLEAN-005 adds Mock AI suggestions, supervisor findings, corrective revisions
-and explicit approval at `/review`. CLEAN-006 adds computed staffing coverage, human replacement
-assignment, canonical site-zone status and mobile capture at `/operations` and `/mobile`.
-CLEAN-007 adds neutral incident/equipment intake, a versioned 149/150 SLA fixture, explicit
-supervisor release and a redacted site-authorized client view at `/incidents` and `/reports`. Database
-reset and test commands are local-only. CLEAN-010 adds hosted Supabase Auth access and a supervisor
-reset limited to the shared synthetic Aurora site. Keep each PR limited to one issue.
+`npm run test:db:postgres` is the documented PostgreSQL 17+ compatibility fallback when a Docker runtime is unavailable. `npm run demo:tornado` writes browser results under `artifacts/tornado-demo/`; authenticated runs need the protected synthetic credentials described in [TORNADO_DEMO.md](TORNADO_DEMO.md). Run `demo:generate`/`demo:assert` only against an explicitly selected synthetic scenario and read [DATA_FACTORY](docs/demo/DATA_FACTORY.md) before any reset.
 
-Repository: https://github.com/niru2015/cleanops-ai (public, by owner decision; see ADR 008).
-The local parent Vancouver project is a synced mirror, so this CleanOps folder remains
-separate from it.
+## Source and release rules
 
-## Provenance and decision status
+Main branch code, migrations and tests are the implementation source. [Finance issue #61](https://github.com/niru2015/cleanops-ai/issues/61) and [scenario issue #28](https://github.com/niru2015/cleanops-ai/issues/28) define the business contracts; older phase prose is historical. Keep operational postings separate from accepted accounting actuals, never call direct contribution net profit, and never turn AI output or a message into an approval. Require organization **and** site authorization for reads and writes.
 
-Source: user-provided “Research casino cleaning systems” conversation,
-ID `6aa8e316-0e4c-83e8-ad13-1f4169e500fe`, retrieved 2026-09-14.
-The full available recent planning answer and bounded prototype specification informed
-this pack; older long answers were truncated by the conversation reader.
-This is a compressed implementation baseline, not a verbatim research archive.
-Business claims about Tornado, regulations, API availability and vendor prices are not
-validated customer requirements. Demo people and performance are synthetic; the hosted casino demo may use real casino and equipment names as reference data under [ADR 008](docs/adr/008-real-casino-names-public-repo.md).
-Accepted ADRs mean this pack's initial design baseline; no customer/legal approval implied.
-
-Phase ordering, role boundaries, retry limits and demo arithmetic are explicit design
-choices to make the first build executable. Pilot-dependent decisions remain open in the roadmap.
+Review one bounded change at a time. For a changed data path, update the corresponding mapping, dictionary and process-flow documentation in the same PR. Keep local tests, CI, deployed browser evidence and customer acceptance distinct. The repository is public by owner decision; never commit customer records, passwords, tokens or raw private media.

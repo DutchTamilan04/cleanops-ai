@@ -74,7 +74,7 @@ export default async function ProjectsPage() {
         label: `Accounting allocation · ${item.job_reference ?? "project"}`, amount: Number(item.amount), kind: "accounting" });
   }
   return <AppShell authenticated currentPath="/finance" role={access.role} roleLabel={access.roleLabel}>
-    <SectionTabs items={getFinanceSectionTabs(access.canEditFinance)} currentPath="/finance/projects" ariaLabel="Finance sections" />
+    <SectionTabs items={getFinanceSectionTabs(access)} currentPath="/finance/projects" ariaLabel="Finance sections" />
     <h1>One-off project profitability</h1>
     {!access.canViewFinance ? <p>Finance access restricted.</p> : <ProjectWorkspace
       projects={projects} sites={access.sites.map(site => ({ id: site.id, name: site.name }))}

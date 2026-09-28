@@ -89,9 +89,11 @@ membership plus an active grant to that site before returning a redacted snapsho
 guessed IDs, another site in the same tenant, another tenant and private-original denial.
 
 CLEAN-027 and the role-scoped demo migration (`20260921051826`) protect finance and equipment data.
-`inventory_transactions` and `labor_cost_entries` can be read only by an organization administrator or an area
-manager with an active grant to the site (`private.can_view_site_finance`) and inserted only by an organization
-administrator (`private.can_edit_site_finance`); site supervisors and operations managers have no finance ledger access.
+`inventory_transactions` can be read by an organization administrator or an Area Manager with an active
+site grant (`private.can_view_site_finance`). Individual `labor_cost_entries` are Director-only; an Area Manager
+receives permitted aggregate accepted labour through `finance_reconciliations`, not worker-level ledger rows.
+Both ledgers are inserted only by an organization administrator (`private.can_edit_site_finance`); site
+supervisors and operations managers have no finance ledger access.
 Since issue #48 (migration `20260922034200`), Directors also hold `update, delete` on both ledgers — matching the
 `update`/`delete` RLS policies that administrators already had. A `before update or delete` trigger
 (`private.log_finance_ledger_change`) rejects any update that reassigns `organization_id`, `site_id` or `id`, and
@@ -101,12 +103,28 @@ own `can_view_site_finance` rule, whereas `reporting_audit_events` uses the broa
 have let site supervisors and operations managers read finance edit history despite having no ledger access.
 Supplier and inventory item catalogues are readable only by Directors, Area Managers and Operations Managers
 (`private.can_view_supply_catalogue`) and writable only by Directors (`private.can_edit_supply_catalogue`).
+For CLEAN-017, a site Supervisor obtains only active item ID/name/SKU/base unit through the site-scoped
+`list_supply_request_items` RPC; the existing supplier and inventory catalogue table policies remain unchanged.
+Supply requests, items, events, receipts and counts have read-only table grants for authenticated users with
+operational site access. All writes use RPCs that recheck the actor and site. Area/Operations Managers and Directors
+may approve or order; a Supervisor may submit and record an assigned-site receipt or stock event but cannot approve.
+Workflow stock movements are append-only, and supply-to-expense links are Director-only.
 `equipment_models` is readable by every active member and writable by administrators; `equipment_assets` is readable
 with operational site access. Both are select-only for browser roles. Raw `external_messages` remain service-only
 and reach supervisors only through `list_site_external_messages`. Since issue #55, `/finance` tells a restricted
 Area Manager that the labour ledger is off-limits rather than showing a misleading empty state.
 
+CLEAN-018 equipment checklists, inspections, fault actions and movement history are readable only at authorized
+operational sites; browser writes go through `auth.uid()`-checked RPCs. A report can link only to an asset at the
+report site. Director movement preserves old site attribution. Supervisor inspection separates a known operator
+from the inspector; return to service requires a Director or Operations Manager other than the work-completion actor.
+Ready `task_evidence` links require a same-site check and retain the existing private storage boundary. Repair cost
+links are readable only to site-finance roles; they require one approved same-site repair posting and do not expose
+raw accounting rows to Area Managers. Anonymous and client roles have no equipment workflow grants.
+
 CLEAN-020 keeps imported batches, source rows, raw CSV values, allocations and the worker-level labour ledger Director-only. This prevents Area Managers from reading individual labour/payroll detail. `finance_reconciliations` contains only approved actual aggregate totals and is readable by Directors or an Area Manager with an active site grant. Supervisors, Operations Managers, cleaners and clients cannot read imported finance totals; clients never receive margins. Staging and acceptance RPCs independently require Director authorization and derive the acceptance actor from `auth.uid()`.
+
+CLEAN-021 finance exception reviews are readable and writable only by a Director or Area Manager with an active finance grant to the site. Browser roles cannot delete reviews or write history. A trigger derives owner/update actor from `auth.uid()`, rejects a source outside the site and prevents changing the prompt key or organization/site after creation. History is appended by a private trigger; direct event writes are revoked. The server action also rechecks the active derived prompt before writing. Area Manager summary reads omit individual labour ledger/rate rows and raw accounting imports; incomplete or stale periods never expose a fabricated contribution.
 
 CLEAN-022 contract tables use organization/site composite foreign keys and RLS. Directors read/write drafts at all organization sites, approve, preview and activate. Area Managers can create and edit drafts only at granted sites and read their proposed commercial terms, but cannot approve or activate. Operations Managers read organization-wide contract identity and operational obligations/staffing/SLA terms, but have no grant or policy for commercial terms or expected revenue. Supervisors, cleaners and clients have no contract administration access. Approval and activation are `security definer` RPCs with explicit `auth.uid()`-backed Director checks; `PUBLIC` and `anon` execution is revoked. A trigger blocks browser edits to generated contract provenance and identity. Approved child rows are immutable through browser RLS.
 

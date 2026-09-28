@@ -192,12 +192,20 @@ equipment problem reported
   -> available to reporting summary
 ```
 
-Current scope is intake only, not a full maintenance/CMMS lifecycle.
+The `/equipment` register can now link this neutral report to an existing asset at the same site. A Director
+approves a checklist version only with a manufacturer or customer-approved source reference. A separate
+site-authorized inspector records post-use answers, notes and an optional follow-up due time; missing or overdue
+inspection remains visible. Ready private task evidence may be associated to an inspection or action without
+altering the source image. A linked fault progresses through attributed triage, maintenance request and work
+completion events. A Director or Operations Manager who did not record completed work approves return to service;
+only then does this workflow mark the report resolved and the asset available. Correction is a new attributed event.
+This is a bounded repair history, not a CMMS, safety certification or causal finding.
 
-Separately, `equipment_assets` (with `equipment_models`) is a read-only site register shown in the `/operations`
-portfolio: status, condition and service dates come from seed data. A report names equipment only by free-text
-label; there is no link to an asset, no inspection record and no repair cost, so repeat-fault history per machine
-cannot yet be derived (issue #31).
+Director site movement closes the current asset-site interval and opens a new one. Old fault, inspection and
+repair expense rows keep their historical site; earlier history before the initial register snapshot is unknown.
+One approved repair expense posting may be linked to one maintenance action, with an optional accepted accounting
+source row. The operational posting is the management cost source and the accounting row is reconciliation evidence,
+so the two are never summed. Unknown costs and period operating hours are not converted to zero or a cost/hour rate.
 
 ## 10. SLA and client release
 
@@ -255,6 +263,19 @@ granted Area Manager can read but not write. Every edit/delete is recorded in `f
 actor, before/after state and action; a trigger rejects reassigning `organization_id`, `site_id` or `id`.
 An order is not consumption: `issue` records stock released to a site, not proof of use (issue #30).
 
+### CLEAN-017 supply request and stock workflow
+
+```text
+Supervisor at granted site -> request (item, packs, base-unit factor, CAD estimate/source)
+  -> requested -> manager approves/rejects with audit event
+  -> approved -> manager records order reference -> ordered
+  -> partial/final receipt -> one stock receipt transaction per receipt key
+  -> stock issue/return/transfer/count adjustment -> append-only stock history
+  -> optional Director link to an existing approved supply expense posting
+```
+
+Changing an item after approval increments the request version, records the old item in an event and returns the request to `requested`; it must be approved again. Receipt quantity cannot exceed the approved item quantity. Stock issues/transfers cannot make on-hand negative; an uncertain legacy adjustment/count produces N/A until reviewed. Opening, receipts, returns and positive count adjustments add stock; issues, transfers out and negative count adjustments subtract it. Count records the observed quantity and an explicit adjustment, including a zero-difference audit row. The order, receipt and stock issue are not themselves supplier invoices, payments or additional recognized costs. A receipt may link once to one approved same-site CAD supply expense posting; reconciliation still follows the existing finance source row path.
+
 ## 12. Finance — labour
 
 ```text
@@ -307,9 +328,11 @@ When new demo-mutated tables are added, decide whether reset must restore/delete
 The reset function `reset_hosted_demo` (migration `20260916192408`, extended by `20260922031000`) is service-role
 only. Message contexts and media are removed indirectly (they cascade from the deleted webhook events and messages).
 It now also clears `inventory_transactions` and `labor_cost_entries` for the walkthrough site, so a Director's demo
-finance entries no longer survive a reset. It deliberately does not touch `equipment_assets`: that table is seeded
-fixture data with no application write path today (only `select` is granted to `authenticated`), so there is nothing
-for a demo to mutate there — add reset coverage only once a write path exists. In production mode, review
+finance entries no longer survive a reset. It deliberately does not touch `equipment_assets`: the shared
+walkthrough reset is scoped to older golden records and does not reset the later equipment-care workflow.
+Equipment now has attributed inspection, maintenance, repair-cost and movement actions. Use the separate
+guarded scenario registry and exact-scope reset for generated equipment data, never a broad browser reset.
+In production mode, review
 preparation/correction uses an authenticated server-only fixture command. It verifies the actor's active role and
 grant to the exact synthetic site, limits the task and event IDs, and passes labelled images through durable ingress
 and evidence services. A site-level operation lease prevents simultaneous preparation/correction/reset; start and
@@ -323,7 +346,7 @@ Manual create resolves organization/client from the selected authorized site in 
 
 `preview_contract_activation` counts the approved version's tasks/schedules, first 28 effective days of staffing coverage, SLA definitions and up to 12 fixed-fee billing periods. Its token identifies the frozen approved version. `activate_contract_version` checks that token, locks the contract/version, shortens an overlapping prior active version's future window, marks replaced future revenue expectations non-current, and atomically creates version-linked service tasks, schedules, shifts/coverage, expected revenue and SLA definitions. Quarterly work is one schedule with quarterly recurrence. A retry against the already active version fails without duplicate rows. Existing task runs and prior-period expectations are preserved.
 
-`contract_revenue_expectations` represent expected billing only. CLEAN-020 imported accounting rows remain distinct recognized actuals; #66 will reconcile them. Task runs created from a contract schedule inherit its version ID; an amendment leaves existing task-run provenance and requirements snapshots unchanged. The scenario factory's contracts adapter builds synthetic source terms and replays approval/activation through the same RPCs, then queries current expectations against the generated manifest. Its local reset refuses other attached operational records before deleting scenario-owned contract rows.
+`contract_revenue_expectations` represent expected billing only. CLEAN-020 imported accounting rows remain distinct recognized actuals and CLEAN-038 links supported operational postings to accepted allocations. Task runs created from a contract schedule inherit its version ID; an amendment leaves existing task-run provenance and requirements snapshots unchanged. The scenario factory's contracts adapter builds synthetic source terms and replays approval/activation through the same RPCs, then queries current expectations against the generated manifest. Its local reset refuses other attached operational records before deleting scenario-owned contract rows.
 
 ## 17. Contract document source and review (CLEAN-034)
 
@@ -384,3 +407,34 @@ updated as IDs are created and marked `ready` only after source-backed assertion
 remain `partial`. A reset reads the database registry, verifies all organization-scoped source
 IDs and absence of unrelated rows, then deletes only that synthetic organization in dependency
 order. Hosted reset requires the exact project database connection and never runs from a browser.
+
+Version 9 adds the released supply and equipment workflows to this replay. A site supervisor
+submits a supply request with an idempotency key; an assigned Area Manager approves and orders it;
+the supervisor receives stock and records any opening/issue movements. A Director links the
+receipt to one approved expense posting, leaving request, order and stock issue out of the
+financial cost ledger. A Director approves a synthetic equipment checklist; a supervisor records
+healthy and follow-up inspections, links a fault report to an asset, and triages it. An Area
+Manager requests/completes maintenance; a Director links each repair to an existing approved
+posting and independently approves return to service. Two reports on the same asset demonstrate
+repeat repair without creating a second cost for either invoice. The generated expected manifest
+records request amounts, closing stock and source invoice amounts; `demo:assert` queries the
+persisted rows. Local reset deletes these source rows after registry and organization checks.
+Hosted version 9 reset is intentionally disabled pending separate exact-scope approval.
+
+## CLEAN-021 manager overview and exception review
+
+An authorized manager chooses a site or all granted sites and a calendar month. The server
+queries contract expectations, accepted accounting aggregates, period coverage, operational
+expense claims/postings, approved time and equipment repair links inside the authenticated
+organization/site boundary. The summary service calculates direct contribution only when a
+complete current accepted month is closed; it never adds operational postings to accepted
+accounting costs again. All-site contribution remains N/A when any selected site is incomplete.
+A labelled covered-site subtotal uses only complete sites and cannot be mistaken for an all-site
+result. Expense per approved hour is N/A without a positive approved-hour denominator.
+
+Versioned source rules produce review prompts with observed value, baseline, period, sample
+size and owning record link. A manager opens the source, decides an owner/state and records a
+reason. The server action recomputes the still-active prompt, then RLS and a trigger validate
+site/source scope, derive the actor and append review history. Snoozing or resolving a prompt
+changes only the review record; it does not alter a contract, expense, repair, time entry or
+finance period. The prompt remains a human review cue, not a finding of misconduct.
