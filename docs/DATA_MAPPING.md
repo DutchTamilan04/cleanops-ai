@@ -2,7 +2,7 @@
 
 Purpose: source-to-target map for implemented pages and server workflows. Exact behavior is owned by current code, migrations and tests.
 
-Last updated: 2026-09-24 for hosted fixture commands.
+Reviewed: 2026-09-28 against `main` at `7d16984`. Customer-facing procedures are in [finance training](finance/README.md).
 
 ## Route summary
 
@@ -18,6 +18,13 @@ Roles per route come from `src/config/navigation.ts` and the page guards; RLS/RP
 | `/finance` | area manager (read only), director (read + write) | finance integration + actions | Site-scoped supplier/item setup, inventory and labour ledgers, accepted accounting summaries, and the message context queue. Missing accounting import tables show a partial availability notice. |
 | `/finance/inbox` | granted area manager, director | expense integration + review actions | Candidate, source/receipt link, deterministic proposal and human resolution. |
 | `/finance/expenses` | granted area manager, director | expense integration + Director approval action | Reviewed claims, source drill-through, allocations and posted cost. |
+| `/finance/contracts`, `/finance/contracts/new`, contract review | director, granted area manager; operations manager operational read | contract integration + actions | Versioned draft, source extraction/human decisions, Director activation and expected revenue. |
+| `/finance/time` | supervisor, area manager, operations manager, director at permitted sites | time integration + actions | Attendance-derived/manual draft, exception review and Director-only cost posting. |
+| `/finance/rates` | director | time integration + rate actions | Confidential effective-dated worker cost rates and history. |
+| `/finance/projects` | director, granted area manager | project RPCs + actions | One-off project terms, existing source links and contribution states. |
+| `/finance/reconciliation` | director; granted area manager aggregate read | reconciliation integration + actions | Accepted accounting/operational matching and Director month close. |
+| `/supplies` | supervisor and managers at permitted sites | supply integration + RPC actions | Request, approval, order, receipt, stock history and approved-expense link. |
+| `/equipment`, `/equipment/[id]` | supervisor and managers at permitted sites | equipment integration + RPC actions | Asset, checklist, inspection, fault, maintenance, cost link and site history. |
 | `/incidents` | supervisor, area manager, operations manager, director | reporting integration + incident actions | Incident and equipment intake/correction. |
 | `/reports` | client viewer, supervisor, area manager, operations manager, director | reporting integration + report actions | SLA snapshot preparation and release. |
 | `/reports/client` | client viewer (and directors for inspection) | reporting integration | Released-only redacted client report. |
@@ -27,7 +34,7 @@ Roles per route come from `src/config/navigation.ts` and the page guards; RLS/RP
 | UI/behavior | Source | Rule |
 |---|---|---|
 | Sign-in | Supabase Auth | Cookie-bound session. |
-| Persona selector | `scripts/provision-demo-logins.mjs` | 17 named demo personas (2 directors, 2 area managers, 4 supervisors, 9 cleaners) provisioned with one shared rotated password; not in `supabase/seed.sql`. |
+| Persona selector | `scripts/provision-demo-logins.mjs` and scenario-generated personas | Named synthetic accounts are provisioned separately from the base seed; the active selector/manifest controls the count and protected password. Do not use these accounts for a customer tenant. |
 | Organization role | `memberships.role/state` | Active membership required. |
 | Site access | `member_site_access` | Directors and operations managers see every org site; other roles only sites with an active grant (`starts_at <= now < ends_at`). |
 | Supervisor/cleaner/client perspective | membership role + hosted capability | Page runtime checks capability before loading workflow data. |
@@ -309,7 +316,7 @@ Client view does not expose raw evidence, private worker statements, raw message
 | Approval | `approve_finance_expense` checks Director authorization, resolved site, verified receipt, item/total and allocations, and duplicate posted receipt hash. It atomically writes immutable `expense_postings` and audit; retry returns the existing claim. |
 | Posted expense | `/finance/expenses` shows source message, original receipt, site/project allocation, approval actor and direct cost. Employee reimbursement is a separate pending state; equipment purchase is flagged for asset review. |
 
-These postings do not mutate CLEAN-020 `finance_reconciliations`; #66 owns accounting reconciliation and period close.
+These postings do not themselves mutate accepted accounting totals. CLEAN-038 provides separate reconciliation links and Director-controlled period close.
 
 ## /finance accounting imports
 
@@ -343,7 +350,7 @@ These postings do not mutate CLEAN-020 `finance_reconciliations`; #66 owns accou
 | Return submitted version for revision | `return_contract_version_to_draft` validates the editor, site, `in_review` state and reason, restores `draft` on the same `contract_versions` row and appends an actor-stamped `contract_events` record; repeated submissions each receive a distinct event ID |
 | Submit/approve/preview/activate | Dedicated RPCs; activation writes canonical operational rows and `contract_revenue_expectations` transactionally |
 
-Expected revenue is a contract projection and does not enter CLEAN-020 `finance_reconciliations` as recognized revenue. The manager finance overview remains issue #34.
+Expected revenue is a contract projection and does not enter CLEAN-020 `finance_reconciliations` as recognized revenue. The manager finance overview is implemented by CLEAN-021 and keeps expected and recognized values separate.
 
 ### Contract document upload and extraction (CLEAN-034)
 

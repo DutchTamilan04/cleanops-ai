@@ -328,9 +328,11 @@ When new demo-mutated tables are added, decide whether reset must restore/delete
 The reset function `reset_hosted_demo` (migration `20260916192408`, extended by `20260922031000`) is service-role
 only. Message contexts and media are removed indirectly (they cascade from the deleted webhook events and messages).
 It now also clears `inventory_transactions` and `labor_cost_entries` for the walkthrough site, so a Director's demo
-finance entries no longer survive a reset. It deliberately does not touch `equipment_assets`: that table is seeded
-fixture data with no application write path today (only `select` is granted to `authenticated`), so there is nothing
-for a demo to mutate there — add reset coverage only once a write path exists. In production mode, review
+finance entries no longer survive a reset. It deliberately does not touch `equipment_assets`: the shared
+walkthrough reset is scoped to older golden records and does not reset the later equipment-care workflow.
+Equipment now has attributed inspection, maintenance, repair-cost and movement actions. Use the separate
+guarded scenario registry and exact-scope reset for generated equipment data, never a broad browser reset.
+In production mode, review
 preparation/correction uses an authenticated server-only fixture command. It verifies the actor's active role and
 grant to the exact synthetic site, limits the task and event IDs, and passes labelled images through durable ingress
 and evidence services. A site-level operation lease prevents simultaneous preparation/correction/reset; start and
@@ -344,7 +346,7 @@ Manual create resolves organization/client from the selected authorized site in 
 
 `preview_contract_activation` counts the approved version's tasks/schedules, first 28 effective days of staffing coverage, SLA definitions and up to 12 fixed-fee billing periods. Its token identifies the frozen approved version. `activate_contract_version` checks that token, locks the contract/version, shortens an overlapping prior active version's future window, marks replaced future revenue expectations non-current, and atomically creates version-linked service tasks, schedules, shifts/coverage, expected revenue and SLA definitions. Quarterly work is one schedule with quarterly recurrence. A retry against the already active version fails without duplicate rows. Existing task runs and prior-period expectations are preserved.
 
-`contract_revenue_expectations` represent expected billing only. CLEAN-020 imported accounting rows remain distinct recognized actuals; #66 will reconcile them. Task runs created from a contract schedule inherit its version ID; an amendment leaves existing task-run provenance and requirements snapshots unchanged. The scenario factory's contracts adapter builds synthetic source terms and replays approval/activation through the same RPCs, then queries current expectations against the generated manifest. Its local reset refuses other attached operational records before deleting scenario-owned contract rows.
+`contract_revenue_expectations` represent expected billing only. CLEAN-020 imported accounting rows remain distinct recognized actuals and CLEAN-038 links supported operational postings to accepted allocations. Task runs created from a contract schedule inherit its version ID; an amendment leaves existing task-run provenance and requirements snapshots unchanged. The scenario factory's contracts adapter builds synthetic source terms and replays approval/activation through the same RPCs, then queries current expectations against the generated manifest. Its local reset refuses other attached operational records before deleting scenario-owned contract rows.
 
 ## 17. Contract document source and review (CLEAN-034)
 

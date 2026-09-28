@@ -6,6 +6,8 @@ Paths below are relative to `docs/`. Follow linked security/integration details 
 | Task | Read | Canonical responsibility |
 |---|---|---|
 | Scope / feature acceptance | [PRODUCT](PRODUCT.md), [ROADMAP](plans/ROADMAP.md) | What and when |
+| Current open-issue audit | [ISSUE_REVALIDATION](plans/ISSUE_REVALIDATION_2026-09-28.md) | Main-branch evidence, closure candidates and next work |
+| Finance customer and operator training | [FINANCE_TRAINING](finance/README.md), [NEW_CUSTOMER_SETUP](finance/NEW_CUSTOMER_SETUP.md) | Role procedures and first-period runbook |
 | Business states / workflow | [DOMAIN](DOMAIN.md) | Terms, transitions, metrics |
 | Scaffold / boundaries | [ARCHITECTURE](ARCHITECTURE.md) | Stack, placement, execution |
 | Database / authorization | [DATA_MODEL](DATA_MODEL.md), [SECURITY](SECURITY.md), [SUPABASE](integrations/SUPABASE.md) | Relationships and access |
