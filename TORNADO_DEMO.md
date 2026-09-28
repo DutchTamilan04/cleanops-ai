@@ -23,6 +23,24 @@ Use `npm run demo:tornado -- --grep 'UAT-08'` to rerun a chapter. Install the pi
 
 For a recorder smoke check without a password, run `TORNADO_DEMO_PUBLIC_ONLY=1 npm run demo:tornado`. This runs only UAT-00 and proves that screenshot, video, trace, and reporters can write artifacts; it does not test authenticated features.
 
+## Presenter reel, run manifest and repeat runs (#114)
+
+`npm run demo:tornado:presenter` runs the same acceptance chapters and then records **one continuous presenter video** from the same storyboard (`tests/tornado/chapters.ts`), paced for presenting: an opening prototype/synthetic-data card, a title card per chapter naming the synthetic account by role, a slow scroll through each key screen, and a closing card. A chapter that is unavailable or fails in that run gets an explicit “not shown in this run” card with the reason; no static or mock screen is substituted. Outputs, under `artifacts/tornado-demo/presenter/`:
+
+| Path | Use |
+| --- | --- |
+| `tornado-presenter.webm` | Chaptered presenter video (1440×900). No trace is recorded for the reel. |
+| `chapters.vtt` | WebVTT chapter markers for the video (approximate to ±0.5 s) |
+| `chapters.json` | Per chapter: accounts, shown/skipped/failed, reason, start/end seconds, console errors |
+
+Every run (with or without `--presenter`) now writes `results/run-manifest.json`: target and mode, recorder commit and working-tree state, deployment commit, the scenario's ID, run ID, seed and generator version (from `TORNADO_EXPECTED_MANIFEST`), whether each password was present (never the value), and per chapter the accounts by role, status, skip reason, screenshots and browser console-error count. The runner refuses to write the manifest if a credential value would appear in it. For a hosted run, set `TORNADO_DEPLOYMENT_COMMIT` to the deployed commit; otherwise the manifest says it was not provided. Set `TORNADO_FAIL_ON_CONSOLE_ERRORS=1` to fail a chapter on browser console errors (recorded but not failing by default).
+
+Compare two runs, for example before and after a UI release: `npm run demo:tornado:compare -- first/run-manifest.json second/run-manifest.json`. It reports chapter order, status, screenshot-set, console-error, presenter-chapter and scenario-run differences, and exits nonzero when any exist. Copy a run's `results/` and `presenter/` to protected storage before rerunning, because each run replaces them.
+
+**Local rehearsal:** with local Supabase running and `npm run demo:generate -- finance-showcase` done, `npm run demo:tornado:local` (or `npm run demo:tornado:local -- --presenter`) sets a local-only password on the generated finance-showcase personas and records the local app. It refuses non-local Supabase or a hosted target. Legacy operations chapters stay skipped locally unless those accounts exist and `TORNADO_OPERATIONS_PASSWORD` is set. Allow about 1 GB of free disk for a presenter run (dev build cache, video and browser temp files).
+
+**Capture tool decision:** Vercel Agent Browser (`agent-browser` 0.38.1, Apache-2.0) was evaluated for rehearsal and capture. It records WebM/MP4 with a visible cursor, but needs a system ffmpeg and an explicit Chrome path, runs each command as a separate process (about 2 s per step), and has no pass/fail reporting, so adopting it would duplicate the pinned UAT. The presenter reel therefore stays on the pinned Playwright runner, which records one continuous video natively without ffmpeg. Agent Browser remains an optional tool for interactive rehearsal only; it is not a dependency.
+
 ## Account map
 
 The login picker exposes these synthetic identities. Set the matching account passwords privately. Override emails when a local fixture differs.
@@ -56,7 +74,7 @@ The modular Playwright UAT chapters live in `tests/tornado/`. Each has a named t
 Generated artifacts are Git-ignored and may include private session data or credential values in trace actions. Share reviewed screenshots or edited video clips only. Keep raw traces and reports in protected storage.
 Each successful preflight clears the previous generated screenshots and reports so the folder always describes one run. Save a protected copy before rerunning if you need the earlier evidence.
 
-Playwright MCP / Agent CLI chapter annotation and cursor highlighting are not used because the repository has a pinned native Playwright Test runner and no verified compatible export path for those features. Named `test.step` entries supply trace chapters; video, traces and screenshots are native Playwright outputs. The runner makes no claim that action highlights are burned into video.
+Playwright MCP / Agent CLI chapter annotation and cursor highlighting are not used (see the capture tool decision above) because the repository has a pinned native Playwright Test runner and no verified compatible export path for those features. Named `test.step` entries supply trace chapters; video, traces and screenshots are native Playwright outputs. The runner makes no claim that action highlights are burned into video.
 
 ## UAT scope
 
