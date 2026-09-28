@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { integrationMediaSchema } from "@/schemas/integration-event";
 
 const identifier = z.string().trim().min(1).max(255);
 
@@ -59,6 +60,7 @@ export const storedMockEnvelopeSchema = z
     providerEventId: identifier.nullable(),
     accountExternalId: z.string().trim().min(1).max(160),
     messages: z.array(mockMessageSchema).min(1).max(100),
+    adapterMedia: z.array(integrationMediaSchema).max(10).optional(),
   })
   .strict();
 

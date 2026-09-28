@@ -119,20 +119,30 @@ describe("CLEAN-014 authenticated event adapter", () => {
     expect(changed.status).toBe(409);
   });
 
-  it("rejects unsupported media and malformed input without acknowledging", async () => {
+  it("accepts declared image metadata without bytes and rejects incomplete or malformed input", async () => {
     const repository = new FakeRepository();
     const path = "/api/integrations/events/v1";
-    const media = { ...event, media: [{ externalId: "media-1", kind: "image" }] };
+    const media = { ...event, media: [{ externalId: "media-1", kind: "image",
+      mimeType: "image/png", byteSize: 68, sha256: "a".repeat(64) }] };
     const result = await handleIntegrationEventPost(
       signed("POST", path, JSON.stringify(media)), repository, config, now,
     );
-    expect(result.status).toBe(422);
-    expect(await result.json()).toMatchObject({ error: "media_transport_not_configured" });
+    expect(result.status).toBe(202);
+    expect(repository.accepted[0]?.payload).toMatchObject({
+      adapterMedia: [{ externalId: "media-1", byteSize: 68 }],
+      messages: [{ text: event.text, mediaRefs: [{ externalId: "media-1", contentType: "image/png" }] }],
+    });
+    const incomplete = await handleIntegrationEventPost(
+      signed("POST", path, JSON.stringify({ ...event,
+        media: [{ externalId: "media-2", kind: "image" }] }), { nonce: "media_incomplete_1234" }),
+      repository, config, now,
+    );
+    expect(incomplete.status).toBe(422);
     const malformed = await handleIntegrationEventPost(
       signed("POST", path, JSON.stringify({ ...event, organizationId: "attacker-org" }), { nonce: "fourth_nonce_123456" }),
       repository, config, now,
     );
     expect(malformed.status).toBe(422);
-    expect(repository.accepted).toHaveLength(0);
+    expect(repository.accepted).toHaveLength(1);
   });
 });

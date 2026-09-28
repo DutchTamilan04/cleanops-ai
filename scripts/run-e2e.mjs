@@ -2,7 +2,9 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { createClient } from "@supabase/supabase-js";
 
 const status = JSON.parse(
-  execFileSync("npx", ["supabase", "status", "-o", "json"], {
+  execFileSync("npx", ["supabase", "status", "-o", "json",
+    ...(process.env.CLEANOPS_E2E_SUPABASE_WORKDIR
+      ? ["--workdir", process.env.CLEANOPS_E2E_SUPABASE_WORKDIR] : [])], {
     encoding: "utf8",
     stdio: ["ignore", "pipe", "inherit"],
   }),
@@ -34,6 +36,8 @@ const environment = {
   CLEANOPS_DEMO_INGRESS_ENABLED: "true",
   CLEANOPS_DEMO_INGRESS_TOKEN: "cleanops-browser-e2e-token-2026",
   CLEANOPS_DEMO_WORKER_ID: "cleanops-browser-e2e-worker",
+  CLEANOPS_EVENT_ADAPTER_ENABLED: "true",
+  CLEANOPS_EVENT_ADAPTER_KEYS: JSON.stringify({ adapter_e2e_key: "local-only-adapter-e2e-secret-at-least-32-characters" }),
 };
 const productionMode = process.argv.includes("--production");
 if (productionMode) environment.CLEANOPS_E2E_PRODUCTION_MODE = "true";

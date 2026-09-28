@@ -101,6 +101,12 @@ export class SupabaseEventAdapterRepository extends SupabaseIngressRepository im
     return data;
   }
 
+  async expireAdapterMedia() {
+    const { data, error } = await this.client.rpc("expire_adapter_media_uploads");
+    if (error || typeof data !== "number") throw new Error(error?.message ?? "invalid_database_response");
+    return data;
+  }
+
   async retryFailedAdapterJob(jobId: string) {
     const { data, error } = await this.client.rpc("retry_failed_adapter_processing_job", {
       p_job_id: jobId,

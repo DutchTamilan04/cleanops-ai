@@ -19,5 +19,6 @@ Supersede decisions with a new ADR and update canonical docs; retain old rationa
 - [014 UX system V2 tokens, typefaces and primitives](014-ux-system-v2.md)
 - [015 Adapter worker scheduling](015-adapter-worker-scheduling.md)
 - [016 Verified cross-transport WhatsApp message identity](016-cross-transport-message-identity.md)
+- [017 Private signed adapter image uploads](017-adapter-private-media.md)
 
 New ADR: context, status/date, decision, alternatives, consequences, revisit trigger.
