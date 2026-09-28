@@ -22,6 +22,8 @@ test("Director sees the V2 asset register, filters it and opens an asset", async
     await page.screenshot({ path: `test-results/ui166-asset-register-${width}.png`, fullPage: true });
 
     await page.getByRole("link", { name: /EQ-/ }).first().click();
+    // The first visit compiles the detail route in dev mode; wait for the navigation itself.
+    await page.waitForURL(/\/equipment\/[0-9a-f-]{36}$/, { timeout: 30_000 });
     await expect(page.getByRole("navigation", { name: "Breadcrumb" })).toContainText("Asset register");
     await expect(page.getByRole("navigation", { name: "Asset sections" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Faults and maintenance" })).toBeVisible();
