@@ -79,6 +79,12 @@ with `422 media_transport_not_configured` in this first slice: the adapter never
 success for an attachment it cannot download and verify. The existing signed Meta webhook
 remains the supported media path.
 
+Site-less normalized messages enter `/operations/messages`, an organization Director-only
+inbox. The Director verifies the source and assigns a casino or rejects with a reason; each
+decision is audited. Assignment moves the message into that casino's existing context queue
+without confirming any task, worker or financial action. Area Managers cannot read the
+site-less organization queue.
+
 Set headers `X-CleanOps-Key-Id`, `X-CleanOps-Timestamp` (Unix seconds),
 `X-CleanOps-Nonce` (16–128 URL-safe characters) and `X-CleanOps-Signature` (lowercase
 hex HMAC-SHA256). Sign the following six newline-separated fields, with no trailing newline:

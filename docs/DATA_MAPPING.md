@@ -241,8 +241,23 @@ selected `siteId` instead of the fixed `DEMO_SITE_ID`. `performMessageResolution
 hosted-demo `getOperationsRuntime("supervisor")` runtime, a leftover from before the role-scoped finance rework in
 PR #43 removed supervisors from `/finance`). Confirming context is treated as an operational action, not a finance
 write: an Area Manager may confirm even though `canEditFinance` (Director-only) governs the ledgers — RLS
-(`private.can_manage_site`) already permitted this and is unchanged. The generic resolution inbox proposed in issue
-#27 is a separate, larger piece of work.
+(`private.can_manage_site`) already permitted this and is unchanged. The Director first handles
+site-less messages in `/operations/messages` before they can enter this queue.
+
+## /operations/messages — organization intake resolution (CLEAN-014B)
+
+`list_org_unassigned_messages` calls a private, membership-checked read and returns only
+site-less context ID, untrusted sender/text, occurrence time, suggested intent, media count,
+forwarder reference and resolution state. Raw `external_messages` and provenance tables retain
+no direct authenticated grant. Only a current organization Director can read the queue; a
+site-scoped manager receives no rows or mutation authority.
+
+`performUnassignedMessageResolution` rechecks Director role and site access, then calls
+`resolve_org_unassigned_message`. The private function locks the context, verifies the selected
+site belongs to the same organization, and records either an assignment or reasoned rejection
+in `external_message_site_resolutions`. An assignment leaves task/worker context unresolved and
+makes the row available through the existing site-scoped queue. A rejected message retains
+its original source and audit record. A stale second decision fails instead of overwriting.
 
 ### Reads
 

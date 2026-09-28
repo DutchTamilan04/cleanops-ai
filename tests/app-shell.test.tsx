@@ -18,7 +18,8 @@ describe("CLEAN-001 application shell", () => {
     const implementedItems = navigationItems.filter((item) => item.implemented);
     const plannedItems = navigationItems.filter((item) => !item.implemented);
 
-    expect(implementedItems.map((item) => item.label)).toEqual(["Operations", "Sites & zones", "Equipment care", "Cleaner mobile", "Evidence review", "Supplies", "Finance & inventory", "Incidents", "Client reports"]);
+    expect(implementedItems.map((item) => item.label)).toEqual(["Operations", "Message inbox", "Sites & zones", "Equipment care", "Cleaner mobile", "Evidence review", "Supplies", "Finance & inventory", "Incidents", "Client reports"]);
+    expect(implementedItems.find((item) => item.label === "Message inbox")?.roles).toEqual(["organization_administrator"]);
     expect(plannedItems).toHaveLength(0);
   });
 });

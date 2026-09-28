@@ -104,6 +104,14 @@ claims only `event_adapter` jobs, then the existing normalization trigger create
 a review-only intent, and any finance candidate. Unknown identity stays in review. Generic
 attachments return `422` until a verified media transport is added.
 
+For messages without a verified site, a Director opens `/operations/messages`. The restricted
+organization RPC shows the raw source as untrusted review material and media metadata only.
+The Director either assigns a same-organization casino with a reason, or rejects with a reason.
+Both decisions append `external_message_site_resolutions`; a row lock prevents conflicting
+decisions. Assignment does not confirm task, worker or finance meaning: the message moves to
+the selected site's existing `/finance` message context queue for a separate human review.
+Rejected messages retain their source and cannot silently re-enter site review.
+
 ## 5. Director/Area Manager message context review
 
 Fixed (issue #50): re-mounted on `/finance`, scoped to the selected casino, for Director and Area Manager (not
