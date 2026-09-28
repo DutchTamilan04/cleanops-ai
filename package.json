@@ -18,6 +18,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --max-warnings=0",
     "test": "vitest run",
+    "test:adapter-monitor": "node --test scripts/test-adapter-worker-monitor.mjs",
     "test:db": "supabase test db",
     "test:db:postgres": "scripts/test-database-postgres.sh",
     "test:e2e": "node scripts/run-e2e.mjs",

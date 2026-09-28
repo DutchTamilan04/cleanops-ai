@@ -45,7 +45,22 @@ credential or tenant data.
 The worker writes only aggregate codes/counts to platform logs. Monitor the
 `cleanops_adapter_queue_alert` and `cleanops_adapter_background_drain_unavailable`
 events plus 503 cron responses. The product owner must assign a named on-call
-operator and a Vercel log/HTTP alert before claiming unattended monitoring.
+operator and an HTTP/log alert destination before claiming unattended monitoring.
+
+The `Adapter worker monitor` GitHub Actions workflow checks the protected
+production GET independently at 04:10 UTC daily and can be run manually. It
+uses repository variable `CLEANOPS_ADAPTER_WORKER_URL` (the stable production
+URL ending in `/api/internal/integrations/worker`), repository variable
+`CLEANOPS_ADAPTER_ALERT_ASSIGNEE` (the named GitHub operator; defaults to the
+repository owner), and repository secret `CLEANOPS_EVENT_WORKER_TOKEN`.
+Provision the same random, server-only worker token in Vercel production and
+redeploy. A failed response, disabled adapter, timeout or missing configuration
+creates one assigned GitHub issue with only the safe code and HTTP status.
+The next healthy response closes that issue. The workflow itself fails when it
+raises an alert. Confirm the assigned operator receives the GitHub notification
+before treating this as delivered alerting. GitHub's scheduled workflow can be
+delayed; this monitor improves visibility but is not a latency guarantee or
+proof that Vercel's own cron fired. Check Vercel's cron invocation logs separately.
 
 ## Recovery
 
