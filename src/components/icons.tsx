@@ -32,6 +32,7 @@ export function NavigationGlyph({ name, ...props }: IconProps & { name: Navigati
       {name === "alert" && <><path d="M10.4 4.3 2.8 18a1.4 1.4 0 0 0 1.2 2h16a1.4 1.4 0 0 0 1.2-2L13.6 4.3a1.8 1.8 0 0 0-3.2 0Z" /><path d="M12 9v4M12 17h.01" /></>}
       {name === "wrench" && <><path d="M14.7 6.3a4 4 0 0 0 5 5l-9.4 9.4a2.1 2.1 0 0 1-3-3l9.4-9.4a4 4 0 0 1-2-2Z" /><path d="M14.7 6.3 17 4l3 3-2.3 2.3" /></>}
       {name === "box" && <><path d="m12 3 8 4.5v9L12 21l-8-4.5v-9Z" /><path d="m4 7.5 8 4.5 8-4.5M12 12v9" /></>}
+      {name === "inbox" && <><path d="M3 13h5l1.5 3h5L16 13h5" /><path d="M5.5 5h13L21 13v5a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18v-5Z" /></>}
       {name === "chart" && <><path d="M4 20V10h4v10M10 20V4h4v16M16 20v-7h4v7M2 20h20" /></>}
     </svg>
   );

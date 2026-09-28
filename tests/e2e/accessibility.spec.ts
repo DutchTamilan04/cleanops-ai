@@ -39,6 +39,7 @@ const directorDesktop = [
   "/finance/time",
   "/finance/reconciliation",
   "/finance/rates",
+  "/operations/messages",
 ];
 
 test("sign-in page has no WCAG A/AA violations", async ({ page }) => {
@@ -54,13 +55,18 @@ test("Director routes have no WCAG A/AA violations at desktop width", async ({ p
     await visit(page, path);
     await scan(page, `Director ${path}`);
   }
+  // #166: an asset detail page, reached from the register.
+  await visit(page, "/equipment");
+  await page.getByRole("link", { name: /EQ-/ }).first().click();
+  await page.waitForLoadState("networkidle");
+  await scan(page, "Director asset detail");
 });
 
 test("Director key routes have no WCAG A/AA violations at 390px", async ({ page }) => {
   test.setTimeout(180_000);
   await page.setViewportSize({ width: 390, height: 844 });
   await signInAsDirector(page);
-  for (const path of ["/operations", "/finance", "/finance/expenses", "/mobile", "/reports"]) {
+  for (const path of ["/operations", "/finance", "/finance/expenses", "/mobile", "/reports", "/equipment", "/supplies"]) {
     await visit(page, path);
     await scan(page, `Director 390px ${path}`);
   }
