@@ -56,7 +56,7 @@ export default async function FinancePage({
   }
 
   if (!loaded) {
-    return <AppShell currentPath="/finance"><section className="accessState"><p className="eyebrow">Finance &amp; inventory</p><h1>{loadError === "organization" ? "Organization selection required" : loadError === "unavailable" ? "Finance workspace unavailable" : "Sign in required"}</h1><p>{loadError === "organization" ? "This account belongs to more than one organization. Ask an administrator to select one before opening finance." : loadError === "unavailable" ? "The workspace could not be loaded. Please try again." : "Use a Director or Area Manager demo account."}</p>{loadError ? null : <a className="reviewButton reviewButton-primary" href="/login">Sign in</a>}</section></AppShell>;
+    return <AppShell currentPath="/finance"><section className="accessState"><p className="eyebrow">Finance &amp; inventory</p><h1>{loadError === "organization" ? "Organization selection required" : loadError === "unavailable" ? "Finance workspace unavailable" : "Sign in required"}</h1><p>{loadError === "organization" ? "This account belongs to more than one organization. Ask an administrator to select one before opening finance." : loadError === "unavailable" ? "The workspace could not be loaded. Please try again." : "Use a Director or Area Manager demo account."}</p>{loadError ? null : <a className="ui-button ui-button-primary" href="/login">Sign in</a>}</section></AppShell>;
   }
 
   const { access, selectedSite, finance, messages, summary, month, summarySiteId } = loaded;

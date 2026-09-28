@@ -32,7 +32,7 @@ export function TimeWorkspace({ data, director, initialSiteId }: { data: Workspa
         run({ kind: "derive", siteId, assignmentId: String(form.get("assignmentId")) }); }}>
         <label>Shift assignment <select name="assignmentId" required defaultValue=""><option value="" disabled>Select assignment</option>
           {data.assignments.filter(a => a.site_id === siteId).map(a => <option key={a.id} value={a.id}>{names.get(a.worker_id) ?? "Worker"} · {a.state} · {a.shift_id.slice(0, 8)}</option>)}
-        </select></label><button className="reviewButton reviewButton-secondary" disabled={pending} type="submit">Check attendance</button>
+        </select></label><button className="ui-button ui-button-secondary" disabled={pending} type="submit">Check attendance</button>
       </form>
     </section>
     <section className="financePanel"><h2>Manual project time</h2>
@@ -48,7 +48,7 @@ export function TimeWorkspace({ data, director, initialSiteId }: { data: Workspa
           <label>Hours <input name="hours" type="number" min="0.000001" max="24" step="0.000001" required /></label></div>
         <label>Cost class <select name="costType"><option value="regular">Regular</option><option value="overtime">Overtime</option><option value="contractor">Contractor</option></select></label>
         <label>Reason <input name="reason" minLength={4} maxLength={500} required /></label>
-        <button className="reviewButton reviewButton-secondary" disabled={pending} type="submit">Create draft time</button>
+        <button className="ui-button ui-button-secondary" disabled={pending} type="submit">Create draft time</button>
       </form>
     </section>
     <section className="financePanel"><h2>Time review</h2>
@@ -69,8 +69,8 @@ export function TimeWorkspace({ data, director, initialSiteId }: { data: Workspa
           <div className="financeFormRow"><label>Approved hours <input name="hours" type="number" min="0.000001" max="24" step="0.000001" defaultValue={entry.hours ?? ""} /></label>
             <label>Cost class <select name="costType" defaultValue={entry.cost_type}><option value="regular">Regular</option><option value="overtime">Overtime</option><option value="contractor">Contractor</option></select></label></div>
           <label>Reason <input name="reason" minLength={4} maxLength={500} required /></label>
-          <button className="reviewButton reviewButton-primary" name="decision" value="approve" disabled={pending}>Approve hours</button>
-          <button className="reviewButton reviewButton-secondary" name="decision" value="reject" disabled={pending}>Reject</button>
+          <button className="ui-button ui-button-primary" name="decision" value="approve" disabled={pending}>Approve hours</button>
+          <button className="ui-button ui-button-secondary" name="decision" value="reject" disabled={pending}>Reject</button>
         </form>}
         {director && entry.state === "approved" && <ConfirmAction label="Post approved cost" disabled={pending}
           title="Post this approved labour cost?"

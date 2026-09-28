@@ -33,7 +33,7 @@ export default async function IncidentsPage() {
   } catch {}
 
   if (!loaded) {
-    return <AppShell currentPath="/incidents"><section className="accessState"><p className="eyebrow">Incident &amp; equipment desk</p><h1>Sign in required</h1><p>Use an authorized CleanOps demo account.</p><a className="reviewButton reviewButton-primary" href="/login">Sign in</a></section></AppShell>;
+    return <AppShell currentPath="/incidents"><section className="accessState"><p className="eyebrow">Incident &amp; equipment desk</p><h1>Sign in required</h1><p>Use an authorized CleanOps demo account.</p><a className="ui-button ui-button-primary" href="/login">Sign in</a></section></AppShell>;
   }
   const { access, workspace, fixtureAvailable } = loaded;
   if (!access.canViewIncidents) {

@@ -40,11 +40,14 @@ Implement as CSS custom properties in `src/app/globals.css` and expose them to T
 | `border-control` | `#7B8C97` | Inputs, selects, secondary buttons, tabs | 3.48:1 on `surface`, 3.21:1 on `canvas` |
 | `ink` / `ink-secondary` / `ink-muted` | `#0F2330` / `#33464F` / `#5B6B76` | Text on light grounds; `ink-muted` is the lightest allowed | 14.85 / 9.86 / 5.51:1 on white |
 | `ink-on-navy` / `-soft` / `-muted` | `#DCE8EF` / `#BCD2DF` / `#9FBCCC` | Text on navy | 10.41 / 8.30 / 6.52:1 |
+| `ink-on-brand` | `#FFFFFF` | Text and icons on `brand-blue` / `brand-navy` fills (primary buttons, current tab, hero KPI) | 6.05:1 on blue, 12.99:1 on navy |
 | `focus-ring` / `focus-ring-on-dark` | `#2F63A8` / `#FFFFFF` | 2px outline, 2px offset | 6.05:1 on white; 12.99:1 on navy |
 | `status-{success,pending,ai,danger,neutral,info}-{bg,fg}` | see library | Record states, always with words | every pair 5.88:1 or more |
 | `status-danger-border` | `#C0392B` | Invalid input border | 5.44:1 on white |
 | `prototype-{bg,fg,dot}` | `#FFF4DF` / `#6B4300` / `#B26B00` | Synthetic-data banner and pill | 7.93:1 |
 | `planned-border` | `#8A9BA5` | Dashed Planned outline, always with words | — |
+
+`globals.css` uses these tokens only: the pre-V2 legacy tokens were retired in #178, and `tests/design-tokens.test.ts` fails on any raw hex colour outside `:root`, any retired token, or any `var(--…)` that is not defined.
 
 Rules: blue is the only action colour. Red is a brand mark, never a button or error: errors use `status-danger-*`. Brand values come from tornadobmc.ca (navy `#00354D`, red `#E04838`, blue `#2F63A8`); red and blue are used unchanged where they pass, and `brand-red-on-dark` exists because `#E04838` is 2.35:1 on the active nav fill.
 

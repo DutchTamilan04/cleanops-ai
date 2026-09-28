@@ -56,7 +56,7 @@ export default async function ClientReportPage() {
   } catch {}
 
   if (!loaded) {
-    return <AppShell currentPath="/reports"><section className="accessState"><p className="eyebrow">Client report</p><h1>Client site access required</h1><p>Sign in with an authorized demo account.</p><a className="reviewButton reviewButton-primary" href="/login">Sign in</a></section></AppShell>;
+    return <AppShell currentPath="/reports"><section className="accessState"><p className="eyebrow">Client report</p><h1>Client site access required</h1><p>Sign in with an authorized demo account.</p><a className="ui-button ui-button-primary" href="/login">Sign in</a></section></AppShell>;
   }
 
   const { access, report } = loaded;
