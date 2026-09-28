@@ -24,10 +24,14 @@ export default defineConfig({
     actionTimeout: 15_000,
   },
   projects: [{ name: "chromium" }],
+  // #114: TORNADO_DEMO_PRODUCTION=1 serves an existing production build (set by demo:tornado:local), so
+  // recordings match the hosted app and dev-mode compiles or Fast Refresh reloads cannot interrupt a sign-in.
   webServer: external ? undefined : {
-    command: "npm run dev -- --hostname 127.0.0.1 --port 3000",
+    command: process.env.TORNADO_DEMO_PRODUCTION === "1"
+      ? "npm run start -- --hostname 127.0.0.1 --port 3000"
+      : "npm run dev -- --hostname 127.0.0.1 --port 3000",
     url: "http://127.0.0.1:3000/login",
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: !process.env.CI && process.env.TORNADO_DEMO_PRODUCTION !== "1",
     timeout: 120_000,
   },
 });

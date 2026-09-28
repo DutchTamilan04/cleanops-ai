@@ -45,15 +45,26 @@ if (!updated) {
 }
 console.log(`Local rehearsal: set a local-only password on ${updated} finance-showcase personas.`);
 
+const appEnvironment = {
+  ...process.env,
+  NEXT_PUBLIC_APP_MODE: "prototype",
+  NEXT_PUBLIC_SUPABASE_URL: apiUrl,
+  NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: publishableKey,
+  SUPABASE_SECRET_KEY: secretKey,
+  CLEANOPS_HOSTED_DEMO_ENABLED: "true",
+};
+// Record a production build by default (like the hosted demo). TORNADO_LOCAL_DEV=1 uses the dev server instead.
+const production = process.env.TORNADO_LOCAL_DEV !== "1";
+if (production) {
+  console.log("Local rehearsal: building the app for production (set TORNADO_LOCAL_DEV=1 to skip)…");
+  const build = spawnSync(process.platform === "win32" ? "npm.cmd" : "npm", ["run", "build"], { stdio: "inherit", env: appEnvironment });
+  if (build.status !== 0) process.exit(build.status ?? 1);
+}
 const run = spawnSync(process.execPath, ["scripts/run-tornado-demo.mjs", ...process.argv.slice(2)], {
   stdio: "inherit",
   env: {
-    ...process.env,
-    NEXT_PUBLIC_APP_MODE: "prototype",
-    NEXT_PUBLIC_SUPABASE_URL: apiUrl,
-    NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: publishableKey,
-    SUPABASE_SECRET_KEY: secretKey,
-    CLEANOPS_HOSTED_DEMO_ENABLED: "true",
+    ...appEnvironment,
+    ...(production ? { TORNADO_DEMO_PRODUCTION: "1" } : {}),
     TORNADO_DEMO_PASSWORD: password,
     TORNADO_EXPECTED_MANIFEST: process.env.TORNADO_EXPECTED_MANIFEST ?? expected,
   },
