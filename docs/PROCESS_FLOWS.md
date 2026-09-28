@@ -92,7 +92,13 @@ Meta Cloud API or Make transport
 
 Rules:
 - Never trust caller-supplied tenant identity.
-- Message dedupe is account + provider message ID.
+- Message dedupe is canonical account + provider message ID. A signed `whatsapp`
+  adapter maps to the Cloud API account only when an operator-verified binding
+  matches organization, site and exact phone ID; unbound sources stay separate.
+- Every distinct accepted event links to the first normalized row in
+  `integration_message_deliveries`. A changed thread, sender, timestamp, text,
+  media reference or schema version fails permanently with a scoped job code;
+  the first source and its draft remain intact.
 - Unknown sender/conflicting context stays unresolved.
 - Do not assume arbitrary existing WhatsApp group access.
 - Raw message text is exposed only through the authorized RPC path.

@@ -26,6 +26,12 @@ function databaseError(error: { message?: string } | null) {
   if (error?.message?.includes("job_not_owned")) {
     return new IngressRepositoryError("job_not_owned");
   }
+  if (error?.message?.includes("logical_message_conflict")) {
+    return new IngressRepositoryError("logical_message_conflict");
+  }
+  if (error?.message?.includes("adapter_binding_invalid")) {
+    return new IngressRepositoryError("adapter_binding_invalid");
+  }
   return new IngressRepositoryError("database_unavailable");
 }
 

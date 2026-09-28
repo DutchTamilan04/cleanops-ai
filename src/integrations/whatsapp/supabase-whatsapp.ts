@@ -20,6 +20,7 @@ export class SupabaseWhatsAppRepository extends SupabaseIngressRepository implem
       p_dedupe_key: input.dedupeKey,
       p_payload: input.payload,
       p_payload_sha256: input.payloadSha256,
+      p_transport: input.transport ?? "meta_webhook",
     });
     if (error) throw new IngressRepositoryError(error.message.includes("integration_account_not_found") ? "account_not_found" : "database_unavailable");
     const result = row(data);

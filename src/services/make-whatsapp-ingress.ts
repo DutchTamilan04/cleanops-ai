@@ -250,7 +250,7 @@ export async function handleMakeWhatsAppPost(
   try {
     const event = parseMakeEvent(body, request.headers.get("content-type"));
     const normalizedBody = new TextEncoder().encode(JSON.stringify(toMetaEnvelope(event)));
-    const result = await acceptWhatsAppWebhook(repository, statusRepository, normalizedBody);
+    const result = await acceptWhatsAppWebhook(repository, statusRepository, normalizedBody, "make_relay");
     return Response.json(result, {
       status: 202,
       headers: { "cache-control": "no-store" },

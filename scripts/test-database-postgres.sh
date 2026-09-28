@@ -66,6 +66,22 @@ psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -p "$test_port" -U postgres -d cleanops_
 psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -p "$test_port" -U postgres -d cleanops_test \
   -f "$repository_root/tests/database/org-message-resolution.sql" >/dev/null
 psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -p "$test_port" -U postgres -d cleanops_test \
+  -f "$repository_root/tests/database/cross-transport-dedupe.sql" >/dev/null
+psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -p "$test_port" -U postgres -d cleanops_test \
+  -f "$repository_root/tests/database/prepare-concurrent-transport.sql" >/dev/null
+psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -p "$test_port" -U postgres -d cleanops_test \
+  -v job_id=c9500000-0000-4000-8000-000000000021 \
+  -f "$repository_root/tests/database/concurrent-transport.sql" >/dev/null &
+first_transport_pid=$!
+psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -p "$test_port" -U postgres -d cleanops_test \
+  -v job_id=c9500000-0000-4000-8000-000000000022 \
+  -f "$repository_root/tests/database/concurrent-transport.sql" >/dev/null &
+second_transport_pid=$!
+wait "$first_transport_pid"
+wait "$second_transport_pid"
+psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -p "$test_port" -U postgres -d cleanops_test \
+  -f "$repository_root/tests/database/check-concurrent-transport.sql" >/dev/null
+psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -p "$test_port" -U postgres -d cleanops_test \
   -f "$repository_root/tests/database/normalized-finance.sql" >/dev/null
 psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -p "$test_port" -U postgres -d cleanops_test \
   -f "$repository_root/tests/database/supply-workflow.sql" >/dev/null

@@ -94,6 +94,28 @@ atomically with the event and pending job. Retry a failed transport with a **new
 The account plus source message ID dedupes business effects even when the transport event ID
 changes. A reused message ID with changed normalized contents returns `409`.
 
+### Verified cross-transport identity (CLEAN-014C)
+
+Meta webhook and Make relay record distinct `meta_webhook` and `make_relay` events for
+the same Cloud API phone account. Their shared provider message ID converges on one
+normalized row. A signed `source=whatsapp` adapter may converge with them only after
+an operator verifies the exact phone ID, organization and site, then creates a
+service-only `integration_adapter_canonical_bindings` row with a verification
+reference. Both integration accounts must use that phone ID as `external_account_id`.
+Do not create a binding for an adapter account that already has normalized messages;
+the database requires separate reviewed reconciliation of those historical rows.
+
+The first accepted normalized message is retained. Every distinct accepted event
+is linked in `integration_message_deliveries` with transport, source account and
+payload hash. A later delivery with the same provider message ID but different
+sender, thread, timestamp, text, media references or schema version ends as a
+failed job with `logical_message_conflict`; it does not overwrite the first text
+or create a second finance draft. A signed adapter's retry of its own identical
+message returns its original event/job rather than a second ledger row.
+`externalMessageId` must be the actual provider message ID for convergence. When
+the source supplies only an event ID fallback, no cross-transport identity is
+asserted. Text similarity or matching media hashes never prove identity.
+
 `202` returns `eventId`, `jobId` and `duplicate`: it means durable acceptance, not
 processing or financial approval. To check a job, sign `GET`,
 `/api/integrations/events/v1/jobs/<jobId>`, key ID, timestamp, a nonce and the SHA-256 of

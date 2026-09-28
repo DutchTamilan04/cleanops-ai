@@ -394,6 +394,15 @@ jobs, calls `complete_processing_job`, then existing triggers populate
 it cannot approve or post. The signed job-status route uses
 `get_adapter_ingress_status` and returns only the credential's account jobs.
 
+For a service-verified `source=whatsapp` binding, `integration_adapter_canonical_bindings`
+matches the adapter account to the same organization/site/exact phone ID on a Cloud API
+account. The external-message insert trigger substitutes that canonical account before
+the unique provider-message check. A job-completion trigger compares the immutable
+message fields and writes `integration_message_deliveries` for each accepted Meta,
+Make or signed-adapter event. On mismatch, `fail_processing_job` records a terminal
+`logical_message_conflict`; the prior message and domain drafts remain unchanged.
+Absent provider message identity or a verified binding, transports remain distinct.
+
 ### WhatsApp outbound
 `whatsapp_outbox` owns idempotency/retry state; `whatsapp_delivery_events` owns transport history.
 

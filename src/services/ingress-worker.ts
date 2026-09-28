@@ -1,4 +1,5 @@
 import { storedMockEnvelopeSchema } from "@/schemas/mock-message";
+import { IngressRepositoryError } from "@/services/ingress-repository";
 import type { IngressRepository } from "@/services/ingress-repository";
 
 export async function processNextIngressJob(
@@ -29,13 +30,16 @@ export async function processNextIngressJob(
       envelope.data.messages,
     );
     return { status: "succeeded" as const, jobId: job.jobId, ...completed };
-  } catch {
+  } catch (error) {
+    const errorCode = error instanceof IngressRepositoryError &&
+      (error.code === "logical_message_conflict" || error.code === "adapter_binding_invalid")
+      ? error.code : "normalization_failed";
     const status = await repository.failJob(
       job.jobId,
       options.workerId,
-      "normalization_failed",
+      errorCode,
       options.retryDelaySeconds ?? 30,
     );
-    return { status, jobId: job.jobId, errorCode: "normalization_failed" as const };
+    return { status, jobId: job.jobId, errorCode };
   }
 }
