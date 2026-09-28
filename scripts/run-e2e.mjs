@@ -67,6 +67,7 @@ const membership = await admin
   .eq("id", "20000000-0000-4000-8000-000000000001");
 if (membership.error) throw membership.error;
 
+let cleanerUserId;
 for (const persona of [
   { email: environment.CLEANOPS_E2E_AREA_EMAIL, name: "E2E Area Manager", membershipId: "20000000-0000-4000-8000-000000000003", role: "area_manager" },
   { email: environment.CLEANOPS_E2E_SUPERVISOR_EMAIL, name: "E2E Supervisor", membershipId: "20000000-0000-4000-8000-000000000008", role: "site_supervisor" },
@@ -86,6 +87,7 @@ for (const persona of [
     if (created.error || !created.data.user) throw created.error ?? new Error("Could not create the E2E persona.");
     person = created.data.user;
   }
+  if (persona.role === "cleaner") cleanerUserId = person.id;
   if (persona.role === "area_manager" || persona.role === "cleaner" || persona.role === "client_viewer") {
     const update = await admin.from("memberships").update({ user_id: person.id }).eq("id", persona.membershipId);
     if (update.error) throw update.error;
@@ -96,6 +98,14 @@ for (const persona of [
     if (upsert.error) throw upsert.error;
   }
 }
+
+// The local cleaner must be the assigned synthetic Worker 182 to exercise the
+// real task RLS path. The seeded placeholder Auth ID is not this E2E account.
+if (!cleanerUserId) throw new Error("The local E2E Cleaner account was not provisioned.");
+const assignedCleaner = await admin.from("workers")
+  .update({ auth_user_id: cleanerUserId })
+  .eq("id", "60000000-0000-4000-8000-000000000001");
+if (assignedCleaner.error) throw assignedCleaner.error;
 
 const supervisorSiteAccess = await admin.from("member_site_access").upsert({
   id: "41000000-0000-4000-8000-000000000008",
