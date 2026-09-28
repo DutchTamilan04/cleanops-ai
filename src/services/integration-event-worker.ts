@@ -5,26 +5,59 @@ import { z } from "zod";
 import { processNextIngressJob } from "@/services/ingress-worker";
 import type { IngressRepository } from "@/services/ingress-repository";
 
-type AdapterWorkerRepository = IngressRepository & {
+export type AdapterWorkerRepository = IngressRepository & {
   queueHealth(): Promise<{
-    pendingCount: number; processingCount: number; failedCount: number;
-    oldestPendingAt: string | null;
+    pendingCount: number; processingCount: number; retryingCount: number;
+    failedCount: number; oldestPendingAt: string | null;
+    oldestFailedAt: string | null; lastSucceededAt: string | null;
   }>;
   retryFailedAdapterJob(jobId: string): Promise<boolean>;
+  pruneNonces(): Promise<number>;
 };
 
-function authorized(request: Request, secret: string) {
-  if (secret.length < 32) return false;
+function authorized(request: Request, secrets: string | readonly string[]) {
   const supplied = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ?? "";
   const a = Buffer.from(supplied);
-  const b = Buffer.from(secret);
-  return a.length === b.length && timingSafeEqual(a, b);
+  return (typeof secrets === "string" ? [secrets] : secrets).some((secret) => {
+    if (secret.length < 32) return false;
+    const b = Buffer.from(secret);
+    return a.length === b.length && timingSafeEqual(a, b);
+  });
+}
+
+export async function drainAdapterJobs(
+  adapter: AdapterWorkerRepository, maxJobs = 20, now = Date.now(),
+) {
+  let processed = 0;
+  let failed = 0;
+  const startedAt = Date.now();
+  for (let index = 0; index < maxJobs && Date.now() - startedAt < 20_000; index += 1) {
+    const result = await processNextIngressJob(adapter, {
+      workerId: "integration-event-worker", leaseSeconds: 60,
+    });
+    if (result.status === "idle") break;
+    processed += result.status === "succeeded" ? 1 : 0;
+    failed += result.status === "pending" || result.status === "failed" ? 1 : 0;
+  }
+  const health = await adapter.queueHealth();
+  const pendingAgeSeconds = health.oldestPendingAt
+    ? Math.max(0, Math.floor((now - Date.parse(health.oldestPendingAt)) / 1000)) : null;
+  const alertCodes = [
+    ...(health.failedCount > 0 ? ["dead_letter_present"] : []),
+    ...(pendingAgeSeconds !== null && pendingAgeSeconds >= 300 ? ["pending_age_exceeded"] : []),
+    ...(health.retryingCount > 0 ? ["retries_pending"] : []),
+  ];
+  return { processed, failed, health: { ...health, pendingAgeSeconds }, alertCodes };
 }
 
 export async function handleIntegrationWorker(
-  request: Request, repository: AdapterWorkerRepository | (() => AdapterWorkerRepository), secret: string,
+  request: Request, repository: AdapterWorkerRepository | (() => AdapterWorkerRepository),
+  secrets: string | readonly string[], enabled = true,
 ) {
-  if (!authorized(request, secret)) return Response.json({ error: "unauthorized" }, { status: 401 });
+  if (!authorized(request, secrets)) return Response.json({ error: "unauthorized" }, { status: 401 });
+  if (!enabled) return Response.json({ status: "adapter_disabled" }, {
+    headers: { "cache-control": "no-store" },
+  });
   try {
     const adapter = typeof repository === "function" ? repository() : repository;
     if (request.method === "POST") {
@@ -35,18 +68,15 @@ export async function handleIntegrationWorker(
       return Response.json({ retried }, { status: retried ? 200 : 404 });
     }
 
-    let processed = 0;
-    let failed = 0;
-    for (let index = 0; index < 20; index += 1) {
-      const result = await processNextIngressJob(adapter, {
-        workerId: "integration-event-worker", leaseSeconds: 60,
-      });
-      if (result.status === "idle") break;
-      processed += result.status === "succeeded" ? 1 : 0;
-      failed += result.status === "pending" || result.status === "failed" ? 1 : 0;
+    const result = await drainAdapterJobs(adapter);
+    await adapter.pruneNonces();
+    if (result.alertCodes.includes("dead_letter_present") || result.alertCodes.includes("pending_age_exceeded")) {
+      console.error("cleanops_adapter_queue_alert", JSON.stringify({
+        alertCodes: result.alertCodes, health: result.health,
+      }));
     }
-    const health = await adapter.queueHealth();
-    return Response.json({ processed, failed, health }, {
+    return Response.json(result, { status: result.alertCodes.includes("dead_letter_present") ||
+      result.alertCodes.includes("pending_age_exceeded") ? 503 : 200,
       headers: { "cache-control": "no-store" },
     });
   } catch {

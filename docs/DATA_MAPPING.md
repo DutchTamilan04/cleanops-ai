@@ -393,6 +393,11 @@ jobs, calls `complete_processing_job`, then existing triggers populate
 `finance_intake_items`. The selected-site message queue reads the intent as a suggestion;
 it cannot approve or post. The signed job-status route uses
 `get_adapter_ingress_status` and returns only the credential's account jobs.
+After a durable `202`, a best-effort `after()` callback drains up to five adapter
+jobs. The production daily cron invokes the same protected worker for recovery;
+`get_adapter_queue_health_v2` supplies aggregate age/retry/dead-letter signals
+and `prune_adapter_nonces` removes expired replay records. The protected route
+never claims Meta/Make jobs. See the worker runbook for deployment evidence.
 
 For a service-verified `source=whatsapp` binding, `integration_adapter_canonical_bindings`
 matches the adapter account to the same organization/site/exact phone ID on a Cloud API

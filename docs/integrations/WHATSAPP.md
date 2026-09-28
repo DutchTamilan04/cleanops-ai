@@ -122,14 +122,18 @@ processing or financial approval. To check a job, sign `GET`,
 an empty body. The scoped response gives status, attempts and a safe error code, never raw
 message content. Unknown job IDs and other tenant jobs return `404`.
 
-The generic worker target `GET /api/internal/integrations/worker` requires a separate
-`CLEANOPS_EVENT_WORKER_TOKEN` (or Vercel `CRON_SECRET`) of at least 32 characters.
-Each call processes up to 20 adapter jobs and returns pending/processing/failed counts and
-oldest pending time. `POST` with `{"retryJobId":"<uuid>"}` retries an adapter failed job
-only. Schedule GET from a protected production scheduler and alert on persistent failed jobs
-or oldest pending age. Hosting does **not** yet configure that schedule; a deployed route
-alone is not evidence of continuous processing. Purge nonce records older than one day as
-an operator maintenance task after the scheduler is selected.
+The generic worker target `GET /api/internal/integrations/worker` accepts only a
+server-only `CRON_SECRET` or separate `CLEANOPS_EVENT_WORKER_TOKEN`, each at least
+32 characters. On durable `202`, Next.js `after()` starts a best-effort five-job drain.
+`vercel.json` schedules a protected daily recovery drain at 03:00 UTC on production.
+Each GET starts at most 20 adapter jobs and stops starting new work after 20 seconds,
+prunes nonces older than a day,
+and returns pending/processing/retrying/failed counts and age signals. Stale pending
+or failed jobs return 503 with safe codes for monitoring. `POST` with
+`{"retryJobId":"<uuid>"}` retries only an adapter failed job. Daily fallback does
+not guarantee prompt processing when the immediate callback fails; see the
+[worker runbook](../operations/EVENT_ADAPTER_RUNBOOK.md) for plan limits,
+recovery and the hosted verification still required.
 
 After normalization, the existing context and finance candidate triggers run. The review
 queue shows a deterministic suggested intent. It is a hint only: Director/Area Manager
