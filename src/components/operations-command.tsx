@@ -42,7 +42,7 @@ export function OperationsCommand({ workspace }: { workspace: OperationsWorkspac
       <div className="opsGrid">
         <section className="opsPanel" aria-labelledby="coverage-title">
           <div className="panelHeading"><div><p className="eyebrow">Coverage from records</p><h2 id="coverage-title">Night shift staffing</h2></div><span className="recordLabel">Live records</span></div>
-          <div className="coverageTrack" aria-label={`${workspace.coverage.present} of ${workspace.coverage.required} positions covered`}><span style={{ width: `${Math.min((workspace.coverage.present / workspace.coverage.required) * 100, 100)}%` }} /></div>
+          <div className="coverageTrack" role="meter" aria-valuemin={0} aria-valuemax={workspace.coverage.required} aria-valuenow={Math.min(workspace.coverage.present, workspace.coverage.required)} aria-label={`${workspace.coverage.present} of ${workspace.coverage.required} positions covered`}><span style={{ width: `${Math.min((workspace.coverage.present / workspace.coverage.required) * 100, 100)}%` }} /></div>
           <ol className="coverageTimeline">
             {workspace.timeline.map((point) => <li key={point.time}><time>{point.time}</time><span className={point.present === point.required ? "timelineDotFull" : ""} /><div><strong>{point.present}/{point.required} present</strong><StatusBadge tone={point.present === point.required ? "success" : "pending"}>{point.present === point.required ? "Coverage complete" : `${point.required - point.present} positions open`}</StatusBadge></div></li>)}
           </ol>
