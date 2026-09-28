@@ -41,7 +41,7 @@ function secureEqual(left: string, right: string) {
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
-function signedRequest(request: Request, config: EventAdapterConfig, digest: string, now: number) {
+export function signedRequest(request: Request, config: EventAdapterConfig, digest: string, now: number) {
   const keyId = request.headers.get("x-cleanops-key-id") ?? "";
   const timestamp = request.headers.get("x-cleanops-timestamp") ?? "";
   const nonce = request.headers.get("x-cleanops-nonce") ?? "";
@@ -93,10 +93,6 @@ export async function handleIntegrationEventPost(
   const parsed = integrationEventSchema.safeParse(value);
   if (!parsed.success) return noStore({ error: "invalid_event" }, 422);
   const event = parsed.data;
-  // Generic media needs a provider-specific authenticated downloader or a
-  // scoped upload ticket. Refuse it until one is configured.
-  if (event.media.length) return noStore({ error: "media_transport_not_configured" }, 422);
-
   const payload = {
     schemaVersion: 1 as const,
     providerEventId: null,
@@ -107,9 +103,12 @@ export async function handleIntegrationEventPost(
       senderId: event.senderReference ?? `unknown:${createHash("sha256").update(event.externalEventId).digest("hex").slice(0, 32)}`,
       occurredAt: event.occurredAt,
       text: event.text,
-      mediaRefs: [],
+      mediaRefs: event.media.map((media) => ({
+        externalId: media.externalId, contentType: media.mimeType,
+      })),
       schemaVersion: 1 as const,
     }],
+    adapterMedia: event.media,
   };
   const payloadSha256 = createHash("sha256").update(JSON.stringify(payload)).digest("hex");
   try {

@@ -408,6 +408,21 @@ Make or signed-adapter event. On mismatch, `fail_processing_job` records a termi
 `logical_message_conflict`; the prior message and domain drafts remain unchanged.
 Absent provider message identity or a verified binding, transports remain distinct.
 
+### Signed adapter private image upload (CLEAN-014A)
+The event body carries image ID, JPEG/PNG/WebP MIME, byte count and SHA-256 but no
+URL or bytes. `complete_processing_job` stages `task_evidence` and
+`integration_adapter_media_uploads` after the normalized delivery exists.
+`POST /api/integrations/events/v1/jobs/<jobId>/media/<mediaId>` verifies the same
+key ID/HMAC and consumes a new nonce for each `prepare` or `finalize` command.
+`prepare_adapter_media_upload` checks job, organization, site, source and image ID,
+then the server issues a two-hour path-scoped private Storage upload token.
+`get_adapter_media_upload` scopes finalization; the server reads that one object,
+sniffs MIME and compares size/SHA before `finalize_evidence_ingestion` writes ready
+or `mark_evidence_ingestion_problem` records missing/quarantined. A signed retry
+rotates the path; a protected worker sweep expires abandoned staged media. The
+original `external_messages` text, `integration_message_deliveries` and human
+review/approval gates are not rewritten by an upload.
+
 ### WhatsApp outbound
 `whatsapp_outbox` owns idempotency/retry state; `whatsapp_delivery_events` owns transport history.
 
