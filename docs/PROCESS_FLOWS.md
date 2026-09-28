@@ -109,6 +109,11 @@ and inserts the same event/job records. `202` is durable acceptance. Its dedicat
 claims only `event_adapter` jobs, then the existing normalization trigger creates context,
 a review-only intent, and any finance candidate. Unknown identity stays in review. Generic
 attachments return `422` until a verified media transport is added.
+After `202`, a best-effort `after()` callback drains five jobs. A daily protected
+Vercel cron drains up to 20 jobs as recovery, using leases and retries. Aggregate
+queue age, retry and failed-job codes produce a safe 503/log signal; an operator
+reviews, fixes the cause and retries only a failed adapter job. Production cron
+registration and alert delivery require separate hosted verification.
 
 For messages without a verified site, a Director opens `/operations/messages`. The restricted
 organization RPC shows the raw source as untrusted review material and media metadata only.

@@ -77,18 +77,28 @@ export class SupabaseEventAdapterRepository extends SupabaseIngressRepository im
   }
 
   async queueHealth() {
-    const { data, error } = await this.client.rpc("get_adapter_queue_health");
+    const { data, error } = await this.client.rpc("get_adapter_queue_health_v2");
     if (error) throw new Error(error.message);
     const row = firstRow(data);
     if (!row || typeof row.pending_count !== "number"
         || typeof row.processing_count !== "number"
+        || typeof row.retrying_count !== "number"
         || typeof row.failed_count !== "number") throw new Error("invalid_database_response");
     return {
       pendingCount: row.pending_count,
       processingCount: row.processing_count,
+      retryingCount: row.retrying_count,
       failedCount: row.failed_count,
       oldestPendingAt: typeof row.oldest_pending_at === "string" ? row.oldest_pending_at : null,
+      oldestFailedAt: typeof row.oldest_failed_at === "string" ? row.oldest_failed_at : null,
+      lastSucceededAt: typeof row.last_succeeded_at === "string" ? row.last_succeeded_at : null,
     };
+  }
+
+  async pruneNonces() {
+    const { data, error } = await this.client.rpc("prune_adapter_nonces");
+    if (error || typeof data !== "number") throw new Error(error?.message ?? "invalid_database_response");
+    return data;
   }
 
   async retryFailedAdapterJob(jobId: string) {
