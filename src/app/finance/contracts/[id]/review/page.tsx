@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { z } from "zod";
 import { AppShell } from "@/components/app-shell";
-import { Alert, Button, KpiCard, KpiCardGrid, SelectField, StatusBadge } from "@/components/ui";
+import { Alert, Button, ConfirmAction, KpiCard, KpiCardGrid, SelectField, StatusBadge } from "@/components/ui";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getAppAccessContext } from "@/services/access-context";
 import { getContractDetail } from "@/integrations/finance/supabase-contracts";
@@ -145,7 +145,10 @@ export default async function ContractReviewPage({ params, searchParams }: {
             <form action={transitionContract}><input type="hidden" name="contractId" value={detail.contract.id} />
               <input type="hidden" name="transition" value="activate" />
               <input type="hidden" name="previewToken" value={impact.token} />
-              <Button variant="primary" type="submit">Activate approved version</Button></form>
+              <ConfirmAction label="Activate approved version"
+                title="Activate this contract version?"
+                consequence="Activation creates the tasks, schedules, shift coverage, expected revenue and SLA definitions listed above, and shortens any overlapping active version."
+                confirmLabel="Activate version" /></form>
           </> : <Alert tone="danger">Activation preview is unavailable. No changes have been applied.</Alert>}
         </>}
         {version.state === "active" && canDraft && <form action={transitionContract}>

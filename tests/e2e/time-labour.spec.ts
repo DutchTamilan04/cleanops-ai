@@ -34,6 +34,7 @@ test("Director can reach finance, set a rate, approve project hours, and post on
   await card.getByRole("button", { name: "Approve hours" }).click();
   await expect(card.getByRole("button", { name: "Post approved cost" })).toBeVisible();
   await card.getByRole("button", { name: "Post approved cost" }).click();
+  await card.page().getByRole("dialog", { name: "Post this approved labour cost?" }).getByRole("button", { name: "Post labour cost" }).click();
   await expect(card.getByText(/Cost posted once/)).toBeVisible();
 });
 

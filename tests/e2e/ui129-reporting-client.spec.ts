@@ -48,6 +48,7 @@ test("Supervisor release remains a visible gate before the Client sees the redac
       await expect(client.getByRole("heading", { name: "No released report" })).toBeVisible();
       await page.screenshot({ path: "test-results/ui129-supervisor-draft-desktop.png", fullPage: true });
       await page.getByRole("button", { name: "Release report to client" }).click();
+      await page.getByRole("dialog", { name: "Release this report to the client?" }).getByRole("button", { name: "Release to client" }).click();
     }
 
     await expect(page.locator(".releasePanel-released .ui-alert-success")).toContainText("Client access enabled");
