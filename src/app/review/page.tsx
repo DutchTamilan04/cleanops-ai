@@ -42,7 +42,7 @@ export default async function ReviewPage({ searchParams }: { searchParams: Promi
   } catch {}
 
   if (!loaded) {
-    return <AppShell currentPath="/review"><div className="reviewWorkspace"><header className="reviewHeader"><div><p className="reviewContext">Evidence review</p><h1>Sign in required</h1><p className="reviewLead">Use an authorized CleanOps demo account.</p><a className="reviewButton reviewButton-primary" href="/login">Sign in</a></div></header></div></AppShell>;
+    return <AppShell currentPath="/review"><div className="reviewWorkspace"><header className="reviewHeader"><div><p className="reviewContext">Evidence review</p><h1>Sign in required</h1><p className="reviewLead">Use an authorized CleanOps demo account.</p><a className="ui-button ui-button-primary" href="/login">Sign in</a></div></header></div></AppShell>;
   }
   const { access, workspace, demo, fixtureAvailable } = loaded;
   if (!access.canReviewEvidence) {

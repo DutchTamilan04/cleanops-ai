@@ -47,7 +47,7 @@ export default async function MobilePage({ searchParams }: { searchParams: Promi
   } catch {}
 
   if (!loaded) {
-    return <AppShell currentPath="/mobile"><section className="accessState"><p className="eyebrow">Cleaner mobile</p><h1>Task access unavailable</h1><p>Sign in with an authorized cleaner account.</p><a className="reviewButton reviewButton-primary" href="/login">Sign in</a></section></AppShell>;
+    return <AppShell currentPath="/mobile"><section className="accessState"><p className="eyebrow">Cleaner mobile</p><h1>Task access unavailable</h1><p>Sign in with an authorized cleaner account.</p><a className="ui-button ui-button-primary" href="/login">Sign in</a></section></AppShell>;
   }
   const { access, workspace, demo, fixtureAvailable, taskOptions } = loaded;
   if (!access.canUseCleanerMobile && !access.canManageOperations) {

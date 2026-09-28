@@ -32,11 +32,11 @@ export default async function ReportsPage() {
   } catch {}
 
   if (!loaded) {
-    return <AppShell currentPath="/reports"><section className="accessState"><p className="eyebrow">Client reporting</p><h1>Sign in required</h1><p>Use an authorized CleanOps demo account.</p><a className="reviewButton reviewButton-primary" href="/login">Sign in</a></section></AppShell>;
+    return <AppShell currentPath="/reports"><section className="accessState"><p className="eyebrow">Client reporting</p><h1>Sign in required</h1><p>Use an authorized CleanOps demo account.</p><a className="ui-button ui-button-primary" href="/login">Sign in</a></section></AppShell>;
   }
   const { access, workspace, fixtureAvailable } = loaded;
   if (!access.canViewReports || access.role === "client_viewer") {
-    return <AppShell authenticated currentPath="/reports" role={access.role} roleLabel={access.roleLabel}><section className="accessState"><p className="eyebrow">Client reporting</p><h1>Use the client report view</h1><p><a className="reviewButton reviewButton-primary" href="/reports/client">Open released report</a></p></section></AppShell>;
+    return <AppShell authenticated currentPath="/reports" role={access.role} roleLabel={access.roleLabel}><section className="accessState"><p className="eyebrow">Client reporting</p><h1>Use the client report view</h1><p><a className="ui-button ui-button-primary" href="/reports/client">Open released report</a></p></section></AppShell>;
   }
   if (!fixtureAvailable) {
     return <AppShell authenticated currentPath="/reports" role={access.role} roleLabel={access.roleLabel}><section className="accessState"><p className="eyebrow">Client reporting</p><h1>No reporting fixture for assigned casinos</h1><p>The current detailed reporting walkthrough is seeded only at Grand Villa Casino.</p></section></AppShell>;
