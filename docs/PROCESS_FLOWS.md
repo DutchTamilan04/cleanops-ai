@@ -97,6 +97,13 @@ Rules:
 - Do not assume arbitrary existing WhatsApp group access.
 - Raw message text is exposed only through the authorized RPC path.
 
+The optional CLEAN-014 adapter adds a text-only route: HMAC key ID, timestamp, nonce and
+body digest are checked before an account/site-scoped database transaction consumes the nonce
+and inserts the same event/job records. `202` is durable acceptance. Its dedicated worker
+claims only `event_adapter` jobs, then the existing normalization trigger creates context,
+a review-only intent, and any finance candidate. Unknown identity stays in review. Generic
+attachments return `422` until a verified media transport is added.
+
 ## 5. Director/Area Manager message context review
 
 Fixed (issue #50): re-mounted on `/finance`, scoped to the selected casino, for Director and Area Manager (not

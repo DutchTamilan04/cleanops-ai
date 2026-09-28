@@ -64,10 +64,13 @@ Important rule: a replacement selection does not count as present. Coverage chan
 | Table | Meaning | Key fields |
 |---|---|---|
 | `integration_accounts` | Registered external provider account/receiving number. | `provider`, `external_account_id`, `display_name`, `enabled`, optional `site_id`. Tenant is derived from this record. |
+| `integration_adapter_credentials` | Service-only key ID and account/site/source/capability binding for the text event adapter; the HMAC secret is stored only in server environment. | `key_id`, organization/account/site, `source`, `capabilities`, enabled/validity window. |
+| `integration_adapter_nonces` | Consumed signed request nonces for replay prevention. | `key_id`, `nonce`, `created_at`; unique per key. |
+| `integration_adapter_event_provenance` | Service-only source context for accepted adapter events. | event/organization, source event ID, parent reference, forwarder reference, synthetic flag. |
 | `integration_webhook_events` | Durable raw provider envelope. | account, provider event ID, `dedupe_key`, `payload`, `payload_sha256`, status, received/processed times, error. |
 | `processing_jobs` | Postgres-backed leased retry queue. | event, `kind`, `dedupe_key`, status, attempts, next attempt, lease owner/expiry, error, completion. |
 | `external_messages` | Normalized inbound message. Raw text is restricted. | account, provider message/thread IDs, sender, occurrence/receipt times, `text_content`, `media_refs`, schema version. |
-| `external_message_contexts` | Supervisor-reviewable operational interpretation. | message, suggested/confirmed site, zone, task run, sender worker/role, resolution status/source/confidence/time. |
+| `external_message_contexts` | Site-scoped, manager-reviewable operational interpretation. | message, suggested/confirmed site, zone, task run, sender worker/role, deterministic review-only `intent_kind`, resolution status/source/confidence/time. |
 | `external_message_media` | Attachment metadata. | message, media kind/external ID, MIME, caption, private storage path, ingestion status. |
 | `external_worker_identities` | Verified external sender -> CleanOps worker mapping. | account, sender ID, worker, verification state/time. |
 | `conversation_contexts` | Expiring context linking thread/sender to assignment/site/zone/task. | account, thread/sender, assignment, site, zone, optional task run, state, start/expiry. |

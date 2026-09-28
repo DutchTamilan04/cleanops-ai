@@ -40,6 +40,14 @@ a separate control for ending all non-database access and must be added before a
 - Enforce update old-row access and new-row tenant/site validity. Review views/functions too.
 - Private media buckets; authorize each signed-URL request, short expiry, no public originals.
 - Verify webhook signatures on original bytes; isolate simulator authorization from live ingress.
+
+CLEAN-014's generic adapter signs the exact request bytes plus method/path/key ID/timestamp/nonce.
+The server checks a five-minute window and holds HMAC secrets only in server environment; the
+service-only database credential maps a key ID to one enabled integration account, site, source
+and capability. The acceptance RPC consumes the nonce and inserts the event/job atomically.
+Browser roles have no grants on credential, nonce or provenance tables or adapter RPCs. Raw
+message content is absent from the signed status response. Generic attachments are rejected
+until an authenticated media transport is implemented.
 - Validate file type by content, size and allowed origin; quarantine bad/unsupported media.
 - Keep secrets server-side, redact logs and audit changes without duplicating sensitive payloads.
 - Messages, OCR and retrieved documents cannot alter system instructions or trigger tools.
