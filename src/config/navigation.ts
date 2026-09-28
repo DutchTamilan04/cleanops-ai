@@ -13,6 +13,7 @@ type NavigationItem = {
 
 export const navigationItems: readonly NavigationItem[] = [
   { label: "Operations", icon: "home", href: "/operations", status: undefined, implemented: true, roles: ["site_supervisor","area_manager","operations_manager","organization_administrator"] },
+  { label: "Message inbox", icon: "document", href: "/operations/messages", status: undefined, implemented: true, roles: ["organization_administrator"] },
   { label: "Sites & zones", icon: "pin", href: "/operations#zones-title", status: undefined, implemented: true, roles: ["site_supervisor","area_manager","operations_manager","organization_administrator"] },
   { label: "Equipment care", icon: "pin", href: "/equipment", status: undefined, implemented: true, roles: ["site_supervisor","area_manager","operations_manager","organization_administrator"] },
   { label: "Cleaner mobile", icon: "mobile", href: "/mobile", status: undefined, implemented: true, roles: ["cleaner","organization_administrator"] },

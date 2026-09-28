@@ -70,7 +70,8 @@ Important rule: a replacement selection does not count as present. Coverage chan
 | `integration_webhook_events` | Durable raw provider envelope. | account, provider event ID, `dedupe_key`, `payload`, `payload_sha256`, status, received/processed times, error. |
 | `processing_jobs` | Postgres-backed leased retry queue. | event, `kind`, `dedupe_key`, status, attempts, next attempt, lease owner/expiry, error, completion. |
 | `external_messages` | Normalized inbound message. Raw text is restricted. | account, provider message/thread IDs, sender, occurrence/receipt times, `text_content`, `media_refs`, schema version. |
-| `external_message_contexts` | Site-scoped, manager-reviewable operational interpretation. | message, suggested/confirmed site, zone, task run, sender worker/role, deterministic review-only `intent_kind`, resolution status/source/confidence/time. |
+| `external_message_contexts` | Operational interpretation. Site-less rows are visible only through the Director's organization inbox RPC; assigned rows enter the existing site queue. | message, suggested/confirmed site, zone, task run, sender worker/role, deterministic review-only `intent_kind`, resolution status/source/confidence/time. |
+| `external_message_site_resolutions` | Service-only append audit of a Director's site assignment or rejection of a site-less message. | organization/context, actor, action, selected site or null, reason, time. |
 | `external_message_media` | Attachment metadata. | message, media kind/external ID, MIME, caption, private storage path, ingestion status. |
 | `external_worker_identities` | Verified external sender -> CleanOps worker mapping. | account, sender ID, worker, verification state/time. |
 | `conversation_contexts` | Expiring context linking thread/sender to assignment/site/zone/task. | account, thread/sender, assignment, site, zone, optional task run, state, start/expiry. |
