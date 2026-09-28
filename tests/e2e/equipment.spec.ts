@@ -58,6 +58,6 @@ test("equipment care keeps inspection, fault, work and return approval separate"
   await approval.locator('textarea[name="notes"]').fill("Independent return-to-service approval");
   await approval.getByRole("button", { name: "Save event" }).click();
   await expect(page.getByText("Maintenance history recorded", { exact: true })).toBeVisible();
-  await expect(page.getByText(/Status:/)).toContainText("available");
+  await expect(page.locator(".assetFacts div").filter({ has: page.locator("dt", { hasText: /^Status$/ }) }).locator("dd")).toHaveText("Available");
   await page.screenshot({ path: "test-results/equipment-return-approved.png", fullPage: true });
 });
