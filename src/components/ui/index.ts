@@ -1,4 +1,5 @@
 export { Button } from "./button";
+export { ConfirmAction, type ConfirmActionProps } from "./confirm-action";
 export { StatusBadge, PlannedBadge } from "./status-badge";
 export { Alert } from "./alert";
 export { KpiCard, KpiCardGrid } from "./kpi-card";

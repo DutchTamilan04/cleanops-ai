@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { performTimeAction } from "@/app/finance/time/actions";
+import { ConfirmAction } from "@/components/ui";
 import type { getTimeWorkspace } from "@/integrations/finance/supabase-time";
 
 type Workspace = Awaited<ReturnType<typeof getTimeWorkspace>>;
@@ -71,8 +72,11 @@ export function TimeWorkspace({ data, director, initialSiteId }: { data: Workspa
           <button className="reviewButton reviewButton-primary" name="decision" value="approve" disabled={pending}>Approve hours</button>
           <button className="reviewButton reviewButton-secondary" name="decision" value="reject" disabled={pending}>Reject</button>
         </form>}
-        {director && entry.state === "approved" && <button className="reviewButton reviewButton-primary" type="button" disabled={pending}
-          onClick={() => run({ kind: "post", siteId, entryId: entry.id })}>Post approved cost</button>}
+        {director && entry.state === "approved" && <ConfirmAction label="Post approved cost" disabled={pending}
+          title="Post this approved labour cost?"
+          consequence="Posting writes an immutable labour cost at the worker rate in effect on this work date. It cannot be edited afterwards."
+          confirmLabel="Post labour cost"
+          onConfirm={() => run({ kind: "post", siteId, entryId: entry.id })} />}
         {entry.state === "posted" && <p>Cost posted once · ledger {entry.labor_cost_entry_id}</p>}
       </article>)}
     </section>
