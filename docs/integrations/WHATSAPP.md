@@ -42,7 +42,8 @@ or supervisor-forward/PWA fallback recorded in the group-capability issue.
 
 ## Provider-neutral event adapter (CLEAN-014 first slice)
 
-`POST /api/integrations/events/v1` is a separate, opt-in, **text-only** adapter for
+`POST /api/integrations/events/v1` is a separate, opt-in adapter for text and
+declared cleaning images on
 registered external accounts. The sender supplies no tenant or site role. A server-held HMAC key
 ID maps to one enabled `event_adapter` integration account, one organization, one site, one
 source and the `message:write` capability in `integration_adapter_credentials`. The key
@@ -74,10 +75,40 @@ The exact UTF-8 JSON request body has a 64 KB limit and this versioned shape:
 `externalMessageId`, `threadId`, `senderReference`, `parentReference` and
 `forwardedBy` are optional, but unknown identity stays unknown in review. No worker or
 site authorization is inferred from message text. Parent/forwarder/synthetic provenance is
-stored service-only in `integration_adapter_event_provenance`. Media references are rejected
-with `422 media_transport_not_configured` in this first slice: the adapter never reports
-success for an attachment it cannot download and verify. The existing signed Meta webhook
-remains the supported media path.
+stored service-only in `integration_adapter_event_provenance`. Signed adapter images
+use the private upload sequence below. The existing signed Meta webhook keeps its
+own authenticated provider download path.
+
+### Signed adapter image upload
+
+Each image in the event's `media` array must contain `externalId`, `kind:"image"`,
+`mimeType` (`image/jpeg`, `image/png` or `image/webp`), integer `byteSize` from
+1 to 10,485,760 and lowercase 64-character `sha256`. Documents, video, audio,
+caller URLs and base64 are not accepted in this route. Duplicate media IDs in one
+event are rejected. The event's text and media metadata are durable at `202`,
+while actual media is still staged and unavailable for review.
+
+After the signed job status is `succeeded`, sign a JSON `POST` to
+`/api/integrations/events/v1/jobs/<jobId>/media/<mediaId>` with the same HMAC
+headers and a **new nonce**:
+
+1. `{"action":"prepare"}` returns the private bucket, unique path, signed upload
+   token and its expiry. Upload the exact declared bytes directly using Supabase
+   Storage `uploadToSignedUrl(path, token, file)` with overwrite disabled. The
+   Storage token lasts two hours; there is no configurable shorter TTL in the
+   current API.
+2. `{"action":"finalize"}` with another nonce asks CleanOps to read the object
+   privately and compare its sniffed MIME, byte size and SHA-256. Only an exact
+   match becomes ready; the existing human task/quality gates still apply.
+3. If upload is missing, expired or unsafe, the evidence becomes `missing` or
+   `quarantined` with a safe reason. Sign `{"action":"prepare","retry":true}`
+   to rotate to a new private path and upload again. The original text message
+   remains in the review queue.
+
+The path/token response is secret bearer material. Do not log it or put it in
+issues, slides, fixtures or a browser URL. A protected worker sweep records
+abandoned staged uploads as missing after the two-hour window. No live WhatsApp
+group or provider media claim follows from synthetic adapter tests.
 
 Site-less normalized messages enter `/operations/messages`, an organization Director-only
 inbox. The Director verifies the source and assigns a casino or rejects with a reason; each
