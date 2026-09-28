@@ -19,6 +19,8 @@ These checks describe the existing UI. The run is read only. Each available chap
 | UAT-09 | Scenario Generator, generated Director | Active finance manifest identifies `finance-showcase`; visible site-card count equals manifest site count | `09-generated-scenario.png` |
 | UAT-10 | Existing AI functionality, legacy Supervisor | Evidence review labels decision support as Mock AI | `10-mock-ai-review.png` |
 
+The chapters are defined once in `tests/tornado/chapters.ts` and shared by this UAT and the presenter reel (`npm run demo:tornado:presenter`, #114). UAT-00 is not shown in the reel; its login appears in Authentication. Each UAT result is annotated with the accounts used (by role) and its browser console-error count, and every run writes `results/run-manifest.json` (see `TORNADO_DEMO.md`).
+
 UAT-09 is skipped when `TORNADO_EXPECTED_MANIFEST` is not supplied. The generator has no browser control; this check verifies the generated result in the UI and reads the manifest. `demo:assert` and controlled reset/generation are separate service-tooling checks. UAT-05A does not submit a real WhatsApp event. UAT-06A does not claim maintenance completion. UAT-10 uses labelled Mock AI, not a live provider. On the current hosted deployment its Restroom B evidence pair is absent and the demo-ingress preparation action is unavailable, so UAT-10 is skipped with a preparation-state screenshot. Slot Bank 14 mobile evidence does not satisfy the Restroom B review task.
 
 For each run, retain target URL, date, git revision, active scenario run ID, account roles, `uat.json`, `uat.xml`, HTML report, screenshots, videos, and traces. Record pass/fail/skipped from the reporter rather than transcribing from memory. See `FINANCE_UAT.md` for state-changing Gate A cases.

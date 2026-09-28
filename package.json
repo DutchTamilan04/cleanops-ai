@@ -33,6 +33,9 @@
     "demo:assert": "node scripts/demo-scenario.mjs assert",
     "demo:presenter": "node scripts/demo-scenario.mjs presenter",
     "demo:tornado": "node scripts/run-tornado-demo.mjs",
+    "demo:tornado:presenter": "node scripts/run-tornado-demo.mjs --presenter",
+    "demo:tornado:local": "node scripts/run-tornado-local.mjs",
+    "demo:tornado:compare": "node scripts/compare-tornado-runs.mjs",
     "test:scenario": "node scripts/test-demo-scenario.mjs",
     "test:contract-concurrency": "node scripts/test-contract-concurrency.mjs"
   },
