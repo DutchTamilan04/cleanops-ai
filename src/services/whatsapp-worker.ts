@@ -1,5 +1,6 @@
 import "server-only";
 import { storedMockEnvelopeSchema } from "@/schemas/mock-message";
+import { IngressRepositoryError } from "@/services/ingress-repository";
 import type { EvidenceObjectStorage, EvidenceRepository } from "@/services/evidence-repository";
 import { ingestEvidenceBytes, recordEvidenceMediaProblem } from "@/services/evidence-media";
 import type { IngressRepository } from "@/services/ingress-repository";
@@ -55,14 +56,17 @@ export async function processNextWhatsAppIngressJob(
   let completed;
   try {
     completed = await ingress.completeJob(job.jobId, options.workerId, envelope.data.messages);
-  } catch {
+  } catch (error) {
+    const errorCode = error instanceof IngressRepositoryError &&
+      (error.code === "logical_message_conflict" || error.code === "adapter_binding_invalid")
+      ? error.code : "normalization_failed";
     const status = await ingress.failJob(
       job.jobId,
       options.workerId,
-      "normalization_failed",
+      errorCode,
       options.retryDelaySeconds ?? 30,
     );
-    return { status, jobId: job.jobId, errorCode: "normalization_failed" as const };
+    return { status, jobId: job.jobId, errorCode };
   }
 
   const mediaResults: unknown[] = [];

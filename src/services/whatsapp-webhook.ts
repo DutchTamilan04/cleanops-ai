@@ -34,6 +34,7 @@ export async function acceptWhatsAppWebhook(
   repository: IngressRepository,
   statusRepository: WhatsAppStatusRepository,
   rawBody: Uint8Array,
+  transport: "meta_webhook" | "make_relay" = "meta_webhook",
 ) {
   const parsedJson: unknown = JSON.parse(new TextDecoder().decode(rawBody));
   const parsed = whatsappWebhookSchema.parse(parsedJson);
@@ -50,7 +51,8 @@ export async function acceptWhatsAppWebhook(
         const payload = { schemaVersion: 1 as const, providerEventId: null, accountExternalId: phoneNumberId, messages };
         accepted.push(await repository.acceptEnvelope({
           externalAccountId: phoneNumberId,
-          dedupeKey: `sha256:${digest}:${changeIndex}`,
+          dedupeKey: `${transport}:sha256:${digest}:${changeIndex}`,
+          transport,
           payload,
           payloadSha256: createHash("sha256").update(JSON.stringify(payload)).digest("hex"),
         }));

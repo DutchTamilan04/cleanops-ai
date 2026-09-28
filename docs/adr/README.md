@@ -17,5 +17,6 @@ Supersede decisions with a new ADR and update canonical docs; retain old rationa
 - [012 Approved time and effective worker cost](012-approved-time-effective-cost.md)
 - [013 One-off project contribution](013-project-contribution.md)
 - [014 UX system V2 tokens, typefaces and primitives](014-ux-system-v2.md)
+- [016 Verified cross-transport WhatsApp message identity](016-cross-transport-message-identity.md)
 
 New ADR: context, status/date, decision, alternatives, consequences, revisit trigger.

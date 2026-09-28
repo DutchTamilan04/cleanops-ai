@@ -40,6 +40,8 @@ describe("CLEAN-009 WhatsApp Business adapter", () => {
     const replay = await handleWhatsAppPost(signedRequest(payload), ingress, statusRepository, secret);
     expect(await replay.json()).toMatchObject({ duplicateCount: 1, statusCount: 1 });
     expect(ingress.inputs[0]?.payload).toMatchObject({ accountExternalId: "phone-1", messages: [{ externalMessageId: "wamid.inbound-1", senderId: "15551234567", mediaRefs: [{ externalId: "media-1", contentType: "image/jpeg" }] }] });
+    expect(ingress.inputs[0]?.transport).toBe("meta_webhook");
+    expect(ingress.inputs[0]?.dedupeKey).toMatch(/^meta_webhook:sha256:/);
     expect(statuses).toHaveLength(2);
   });
 
@@ -140,6 +142,8 @@ describe("CLEAN-026 Make WhatsApp transport", () => {
         text: "Synthetic Make ingress check",
       }],
     });
+    expect(ingress.inputs[0]?.transport).toBe("make_relay");
+    expect(ingress.inputs[0]?.dedupeKey).toMatch(/^make_relay:sha256:/);
     expect(statuses).toHaveLength(2);
   });
 

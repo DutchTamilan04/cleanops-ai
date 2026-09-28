@@ -3,6 +3,7 @@ import type { MockMessage } from "@/schemas/mock-message";
 export type AcceptEnvelopeInput = {
   externalAccountId: string;
   providerEventId?: string;
+  transport?: "meta_webhook" | "make_relay";
   dedupeKey: string;
   payload: Record<string, unknown>;
   payloadSha256: string;
@@ -48,7 +49,9 @@ export class IngressRepositoryError extends Error {
       | "account_not_found"
       | "database_unavailable"
       | "invalid_database_response"
-      | "job_not_owned",
+      | "job_not_owned"
+      | "logical_message_conflict"
+      | "adapter_binding_invalid",
   ) {
     super(code);
     this.name = "IngressRepositoryError";
