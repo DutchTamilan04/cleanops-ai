@@ -7,14 +7,18 @@ insert into public.integration_accounts (
   ('c9600000-0000-4000-8000-000000000001', '10000000-0000-4000-8000-000000000001',
    '40000000-0000-4000-8000-000000000001', 'event_adapter', 'adapter-media-a', 'Media A'),
   ('c9600000-0000-4000-8000-000000000002', '10000000-0000-4000-8000-000000000002',
-   '40000000-0000-4000-8000-000000000003', 'event_adapter', 'adapter-media-b', 'Media B');
+   '40000000-0000-4000-8000-000000000003', 'event_adapter', 'adapter-media-b', 'Media B'),
+  ('c9600000-0000-4000-8000-000000000003', '10000000-0000-4000-8000-000000000001',
+   '40000000-0000-4000-8000-000000000002', 'event_adapter', 'adapter-media-east', 'Media East');
 insert into public.integration_adapter_credentials (
   key_id, organization_id, integration_account_id, site_id, source
 ) values
   ('adapter_media_key_a', '10000000-0000-4000-8000-000000000001',
    'c9600000-0000-4000-8000-000000000001', '40000000-0000-4000-8000-000000000001','whatsapp'),
   ('adapter_media_key_b', '10000000-0000-4000-8000-000000000002',
-   'c9600000-0000-4000-8000-000000000002', '40000000-0000-4000-8000-000000000003','whatsapp');
+   'c9600000-0000-4000-8000-000000000002', '40000000-0000-4000-8000-000000000003','whatsapp'),
+  ('adapter_media_key_east', '10000000-0000-4000-8000-000000000001',
+   'c9600000-0000-4000-8000-000000000003', '40000000-0000-4000-8000-000000000002','whatsapp');
 
 do $$
 declare
@@ -63,6 +67,10 @@ begin
   if exists(select 1 from public.get_adapter_media_upload(
       'adapter_media_key_b','nonce_media_wrong_1234',v_accepted.job_id,'photo-1')) then
     raise exception 'other tenant read private upload';
+  end if;
+  if exists(select 1 from public.get_adapter_media_upload(
+      'adapter_media_key_east','nonce_media_east_1234',v_accepted.job_id,'photo-1')) then
+    raise exception 'other site read private upload';
   end if;
   select * into v_upload from public.prepare_adapter_media_upload(
     'adapter_media_key_a','nonce_media_prepare_1234',v_accepted.job_id,'photo-1',false
