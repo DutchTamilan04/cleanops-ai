@@ -1,6 +1,19 @@
 # CleanOps UX system V2 (issue #111)
 
-**Status:** proposed for acceptance in `codex/ui-preview`, 2026-09-25. Design and documentation only: no route, service, schema or permission change. Inputs: [UX audit #110](../UX_AUDIT_110.md), the Tornado brand at tornadobmc.ca, and the owner-approved Director overview direction. Decisions: [ADR 014](../adr/014-ux-system-v2.md).
+**Status:** accepted visual direction in `codex/ui-preview`, 2026-09-25. The selective promotion in [#142](https://github.com/niru2015/cleanops-ai/issues/142) ports the implemented presentation from `5822e9f` onto main `8439598`, preserving current main functionality. Inputs: [UX audit #110](../UX_AUDIT_110.md), the Tornado brand at tornadobmc.ca, and the owner-approved Director overview direction. Decisions: [ADR 014](../adr/014-ux-system-v2.md).
+
+**Implemented promotion scope:** fonts/tokens/logo; shell and login; 12 shared UI
+modules; Finance tabs, cards/forms, reconciliation tables and message context
+presentation. Main's site comparison, completeness/coverage, source links,
+exception reviews/history and supply/equipment workflows remain intact. New
+tabs use current main access capabilities. The single-site switcher retains its
+hidden form value. Full source IDs and zero-valued close diagnostics remain
+visible in reconciliation; zero unmatched cost is not labelled fully reconciled.
+
+The component/state tables below describe the wider design target, not a claim
+that every variant, dialog or screen is implemented. Supplies and Equipment keep
+their current page structure; global typography applies. No new dependency,
+service, database or scenario contract is introduced by this promotion.
 
 **Visual references (private claude.ai links, shared on request):**
 - Design canvas: [CleanOps design directions](https://claude.ai/artifact/2PCN3oMuEzuUkXGuX9QKSr): rounds 1–2 (approved: "B layout with A's navy sidebar") and the three #111 example screens.

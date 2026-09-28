@@ -68,6 +68,12 @@ async function loadPlan(name, seed, generatorVersion) {
   if (generatorVersion !== undefined) {
     if (!Number.isInteger(generatorVersion) || generatorVersion > scenario.generatorVersion)
       throw new Error("Scenario registry has an unsupported generator version.");
+    // Keep an existing hosted v8 run reconstructible after the scenario opts into
+    // the v9 adapters. Its registry, source rows and expected manifest stay v8.
+    if (generatorVersion < 9) {
+      scenario.modules.supplies = false;
+      scenario.modules.equipment = false;
+    }
     scenario.generatorVersion = generatorVersion;
   }
   const pack = await json(join(root, "fixtures", "reference", `${scenario.referencePack}.json`));
@@ -156,6 +162,8 @@ async function assertScope(client, plan, allowPartial = false, registry = null) 
   if (plan.timeCases) await assertTimeScope(client,plan,registry,allowPartial);
   if (plan.projects) await assertProjectScope(client,plan,registry,allowPartial);
   if (plan.scenario.modules.reconciliation) await assertReconciliationScope(client,plan,registry,allowPartial);
+  if (plan.supplyCases) await assertSupplyScope(client, plan, registry, allowPartial);
+  if (plan.equipmentCases) await assertEquipmentScope(client, plan, registry, allowPartial);
   return org;
 }
 const contractTables = ["contract_events", "contract_financial_terms", "contract_obligations",
@@ -203,7 +211,8 @@ function contractGeneratedIds(contract) {
 async function assertContractScope(client, plan, allowPartial, registry) {
   const contract = plan.contract;
   for (const [table, planned] of [
-    ["site_zones", [contract.zone.id]], ["contracts", [contract.identity.id]],
+    ["site_zones", [contract.zone.id, ...(plan.equipmentCases ? [plan.equipmentCases.zone.id] : [])]],
+    ["contracts", [contract.identity.id]],
     ["contract_versions", ids(contract.versions)], ["contract_financial_terms", ids(contract.terms)],
     ["contract_obligations", ids(contract.obligations)],
     ["contract_staffing_requirements", ids(contract.staffing)], ["contract_sla_terms", []],
@@ -385,7 +394,7 @@ function executeScenarioSql(sql) {
   execFileSync("psql",[localDatabaseUrl,"-v","ON_ERROR_STOP=1","-c",sql],
     {encoding:"utf8",stdio:["ignore","pipe","pipe"]});
 }
-async function countAttached(organizationId, hasContracts, hasExpenses, hasTime, hasProjects) {
+async function countAttached(organizationId, hasContracts, hasExpenses, hasTime, hasProjects, hasSupplies, hasEquipment) {
   if (!/^[0-9a-f-]{36}$/.test(organizationId)) throw new Error("Exact scenario organization is required for reset.");
   const baseTables = new Set(["clients", "sites", "workers", "worker_site_permissions", "memberships", "member_site_access", "demo_scenario_runs"]);
   if (hasContracts) for (const table of contractTables) baseTables.add(table);
@@ -401,6 +410,13 @@ async function countAttached(organizationId, hasContracts, hasExpenses, hasTime,
     "finance_source_allocations","finance_reconciliations"])baseTables.add(table);
   if(hasProjects)for(const table of ["finance_periods","finance_period_events",
     "finance_reconciliation_links","finance_reconciliation_events"])baseTables.add(table);
+  if(hasSupplies)for(const table of ["vendors","inventory_items","inventory_transactions",
+    "supply_requests","supply_request_items","supply_request_events","supply_receipts",
+    "supply_stock_counts","supply_expense_links"])baseTables.add(table);
+  if(hasEquipment)for(const table of ["equipment_models","equipment_assets","equipment_asset_site_history",
+    "equipment_checklist_versions","equipment_inspections","equipment_reports",
+    "equipment_maintenance_actions","equipment_repair_cost_links","equipment_evidence_links","site_zones"])
+    baseTables.add(table);
   const names=scenarioSqlRows("select table_name from information_schema.columns where table_schema='public' and column_name='organization_id' order by table_name");
   const tables=names.map(row=>row.table_name).filter(table=>table&&!baseTables.has(table));
   if (tables.some((table) => !/^[a-z][a-z0-9_]*$/.test(table))) throw new Error("Unexpected table name in local schema.");
@@ -927,6 +943,289 @@ async function generateReconciliationScenario(client,plan,registry,directory){
     await checked(actor.rpc("close_finance_period", { p_period_id: augustId }), "Close August showcase period");
   }
 }
+async function generateSupplies(client, plan, registry, directory) {
+  if (!plan.supplyCases) return;
+  const supply = plan.supplyCases;
+  const director = plan.personas.find(persona => persona.role === "organization_administrator");
+  const directorActor = await personaClient(registry.authUserIds[plan.personas.indexOf(director)]);
+  registry.supplies = { vendorId: supply.vendor.id, itemId: supply.item.id, requests: [] };
+  await atomicJson(join(directory, "registry.json"), registry);
+  await checked(client.from("vendors").insert(supply.vendor), "Create synthetic supply vendor");
+  await checked(client.from("inventory_items").insert(supply.item), "Create synthetic stock item");
+  for (const item of supply.requests) {
+    const site = plan.sites[item.siteIndex];
+    const supervisor = plan.personas.find(persona => persona.role === "site_supervisor" && persona.siteIndex === item.siteIndex);
+    const approver = plan.personas.find(persona => persona.role === "area_manager" && persona.siteIndex === item.siteIndex);
+    if (!supervisor || !approver) throw new Error(`Supply case ${item.key} requires a site supervisor and assigned Area Manager.`);
+    const supervisorActor = await personaClient(registry.authUserIds[plan.personas.indexOf(supervisor)]);
+    const approverActor = await personaClient(registry.authUserIds[plan.personas.indexOf(approver)]);
+    const requestInput = { p_site_id: site.id, p_purpose: `Synthetic ${item.key} cleaning supply request`,
+      p_request_key: item.requestKey,
+      p_items: [{ itemId: supply.item.id, packCount: item.packCount,
+        baseUnitsPerPack: item.baseUnitsPerPack, pricePerPack: item.pricePerPack,
+        priceSource: "supplier_quote", priceReference: `SYNTH-${item.key.toUpperCase()}-QUOTE` }] };
+    const requestId = await checked(supervisorActor.rpc("submit_supply_request", requestInput), `Submit ${item.key} supply request`);
+    const recorded = { key: item.key, requestId, requestItemId: null, receiptId: null,
+      openingMovementId: null, issueMovementId: null, expenseLinkId: null };
+    registry.supplies.requests.push(recorded);
+    await atomicJson(join(directory, "registry.json"), registry);
+    const repeated = await checked(supervisorActor.rpc("submit_supply_request", requestInput), `Retry ${item.key} supply request`);
+    if (repeated !== requestId) throw new Error(`Supply request ${item.key} was duplicated by retry.`);
+    const requestItem = await checked(client.from("supply_request_items").select("id")
+      .eq("organization_id", plan.organization.id).eq("request_id", requestId).single(),
+    `Read ${item.key} supply item`);
+    recorded.requestItemId = requestItem.id;
+    await atomicJson(join(directory, "registry.json"), registry);
+    await checked(approverActor.rpc("decide_supply_request", {
+      p_request_id: requestId, p_decision: "approved", p_reason: "Synthetic quoted source reviewed",
+    }), `Approve ${item.key} request`);
+    await checked(approverActor.rpc("order_supply_request", {
+      p_request_id: requestId, p_order_reference: `SYNTH-${item.key.toUpperCase()}-ORDER`,
+    }), `Order ${item.key} request`);
+    if (item.openingBaseQuantity) {
+      recorded.openingMovementId = await checked(supervisorActor.rpc("record_supply_stock_movement", {
+        p_site_id: site.id, p_item_id: supply.item.id, p_kind: "opening",
+        p_quantity: item.openingBaseQuantity, p_key: item.openingKey,
+        p_reason: "Synthetic opening stock count", p_target_site_id: null,
+      }), `Record ${item.key} opening stock`);
+      await atomicJson(join(directory, "registry.json"), registry);
+    }
+    recorded.receiptId = await checked(supervisorActor.rpc("receive_supply_request_item", {
+      p_request_item_id: requestItem.id, p_base_quantity: item.receivedBaseQuantity,
+      p_receipt_key: item.receiptKey,
+    }), `Receive ${item.key} stock`);
+    await atomicJson(join(directory, "registry.json"), registry);
+    const repeatedReceipt = await checked(supervisorActor.rpc("receive_supply_request_item", {
+      p_request_item_id: requestItem.id, p_base_quantity: item.receivedBaseQuantity,
+      p_receipt_key: item.receiptKey,
+    }), `Retry ${item.key} stock receipt`);
+    if (repeatedReceipt !== recorded.receiptId) throw new Error(`Supply receipt ${item.key} was duplicated by retry.`);
+    if (item.issuedBaseQuantity) {
+      recorded.issueMovementId = await checked(supervisorActor.rpc("record_supply_stock_movement", {
+        p_site_id: site.id, p_item_id: supply.item.id, p_kind: "issue",
+        p_quantity: item.issuedBaseQuantity, p_key: item.issueKey,
+        p_reason: "Synthetic issue to service team", p_target_site_id: null,
+      }), `Issue ${item.key} stock`);
+      await atomicJson(join(directory, "registry.json"), registry);
+    }
+    const expense = registry.expenses.rows.find(row => row.key === item.expenseKey);
+    if (!expense?.postingIds?.length) throw new Error(`Approved supply source ${item.expenseKey} is missing.`);
+    recorded.expenseLinkId = await checked(directorActor.rpc("link_supply_receipt_expense", {
+      p_receipt_id: recorded.receiptId, p_expense_posting_id: expense.postingIds[0],
+    }), `Link ${item.key} approved invoice once`);
+    await atomicJson(join(directory, "registry.json"), registry);
+  }
+}
+
+async function generateEquipment(client, plan, registry, directory) {
+  if (!plan.equipmentCases) return;
+  const equipment = plan.equipmentCases;
+  const director = plan.personas.find(persona => persona.role === "organization_administrator");
+  const supervisor = plan.personas.find(persona => persona.role === "site_supervisor" && persona.siteIndex === 1);
+  const area = plan.personas.find(persona => persona.role === "area_manager" && persona.siteIndex === 1);
+  const worker = plan.workers.find(item => item.siteIndex === 1);
+  if (!director || !supervisor || !area || !worker) throw new Error("Equipment scenario requires a Director, site supervisor, Area Manager and site worker.");
+  const directorActor = await personaClient(registry.authUserIds[plan.personas.indexOf(director)]);
+  const supervisorActor = await personaClient(registry.authUserIds[plan.personas.indexOf(supervisor)]);
+  const areaActor = await personaClient(registry.authUserIds[plan.personas.indexOf(area)]);
+  const operator = plan.personas.find(persona => persona.role === "cleaner" && persona.siteIndex === 1) ?? area;
+  const operatorId = registry.authUserIds[plan.personas.indexOf(operator)];
+  registry.equipment = { modelId: equipment.model.id, zoneId: equipment.zone.id,
+    assetIds: [equipment.healthyAsset.id, equipment.repairAsset.id], checklistId: null,
+    inspectionIds: [], repairs: [] };
+  await atomicJson(join(directory, "registry.json"), registry);
+  await checked(client.from("equipment_models").insert(equipment.model), "Create synthetic equipment model");
+  await checked(client.from("site_zones").insert(equipment.zone), "Create synthetic equipment zone");
+  await checked(client.from("equipment_assets").insert([equipment.healthyAsset, equipment.repairAsset]),
+    "Register synthetic equipment assets");
+  registry.equipment.checklistId = await checked(directorActor.rpc("create_equipment_checklist_version", {
+    p_model_id: equipment.model.id, p_source_kind: "customer_approved",
+    p_source_reference: "Synthetic demo checklist approved for this scenario",
+    p_instructions: ["Inspect cable and guards", "Check cleaning head and safe operation"],
+  }), "Approve synthetic equipment checklist");
+  await atomicJson(join(directory, "registry.json"), registry);
+  for (const [asset, outcome] of [[equipment.healthyAsset, "care_ok"], [equipment.repairAsset, "follow_up_required"]]) {
+    const inspectionId = await checked(supervisorActor.rpc("record_equipment_inspection", {
+      p_asset_id: asset.id, p_checklist_version_id: registry.equipment.checklistId,
+      p_operator_user_id: operatorId, p_outcome: outcome,
+      p_answers: { guards: "checked", head: outcome === "care_ok" ? "pass" : "follow_up" },
+      p_notes: outcome === "care_ok" ? "Synthetic healthy post-use check" : "Synthetic follow-up required",
+      p_follow_up_due_at: outcome === "care_ok" ? null : `${plan.scenario.clock.end}T12:00:00Z`,
+    }), `Inspect ${asset.asset_code}`);
+    registry.equipment.inspectionIds.push(inspectionId);
+    await atomicJson(join(directory, "registry.json"), registry);
+  }
+  for (const item of equipment.repairs) {
+    const reportId = await checked(supervisorActor.rpc("record_equipment_report", {
+      p_site_id: equipment.zone.site_id, p_zone_id: equipment.zone.id,
+      p_reported_by_worker_id: worker.id, p_reported_at: item.reportedAt,
+      p_equipment_label: equipment.repairAsset.asset_code,
+      p_issue_description: `Synthetic ${item.key} fault requiring attributed repair`,
+      p_idempotency_key: item.reportKey, p_actor_user_id: null,
+    }), `Report ${item.key} equipment fault`);
+    const row = { key: item.key, reportId, actionIds: [], costLinkId: null };
+    registry.equipment.repairs.push(row);
+    await atomicJson(join(directory, "registry.json"), registry);
+    await checked(supervisorActor.rpc("link_equipment_report_asset", {
+      p_report_id: reportId, p_asset_id: equipment.repairAsset.id,
+    }), `Link ${item.key} report to asset`);
+    for (const [kind, actor, note] of [
+      ["triaged", supervisorActor, "Synthetic fault triaged for service"],
+      ["maintenance_requested", areaActor, "Synthetic maintenance requested"],
+      ["work_completed", areaActor, "Synthetic supplier repair completed"],
+    ]) {
+      const actionId = await checked(actor.rpc("record_equipment_maintenance_action", {
+        p_report_id: reportId, p_event_key: `scenario-${plan.runId}-${item.key}-${kind}`,
+        p_action_kind: kind, p_notes: note, p_vendor_reference: item.invoiceReference,
+        p_corrects_action_id: null,
+      }), `Record ${item.key} ${kind}`);
+      row.actionIds.push(actionId);
+      await atomicJson(join(directory, "registry.json"), registry);
+    }
+    const expense = registry.expenses.rows.find(source => source.key === item.expenseKey);
+    if (!expense?.postingIds?.length) throw new Error(`Approved repair invoice ${item.expenseKey} is missing.`);
+    row.costLinkId = await checked(directorActor.rpc("link_equipment_repair_cost", {
+      p_action_id: row.actionIds[2], p_expense_posting_id: expense.postingIds[0],
+      p_invoice_reference: item.invoiceReference, p_finance_source_row_id: null,
+    }), `Link ${item.key} repair cost once`);
+    await atomicJson(join(directory, "registry.json"), registry);
+    row.actionIds.push(await checked(directorActor.rpc("record_equipment_maintenance_action", {
+      p_report_id: reportId, p_event_key: `scenario-${plan.runId}-${item.key}-return`,
+      p_action_kind: "return_to_service", p_notes: "Synthetic independent return approval",
+      p_vendor_reference: item.invoiceReference, p_corrects_action_id: null,
+    }), `Approve ${item.key} return to service`));
+    await atomicJson(join(directory, "registry.json"), registry);
+  }
+}
+async function assertSupplyScope(client, plan, registry, allowPartial) {
+  const supply = plan.supplyCases;
+  const org = plan.organization.id;
+  assertIdSet(await rowsFor(client, "vendors", org), [supply.vendor.id], "vendors", allowPartial);
+  assertIdSet(await rowsFor(client, "inventory_items", org), [supply.item.id], "inventory_items", allowPartial);
+  const requests = await checked(client.from("supply_requests").select("id,site_id,request_key,state")
+    .eq("organization_id", org), "Read scenario supply requests");
+  const keys = new Map(supply.requests.map(item => [item.requestKey, item]));
+  if (requests.some(row => !keys.has(row.request_key) || row.site_id !== plan.sites[keys.get(row.request_key).siteIndex].id)
+    || (!allowPartial && requests.length !== supply.requests.length))
+    throw new Error("Supply requests differ from the deterministic scenario scope.");
+  const requestIds = new Set(requests.map(row => row.id));
+  const requestItems = await checked(client.from("supply_request_items")
+    .select("id,request_id,inventory_item_id,pack_count,base_units_per_pack,requested_amount,received_base_quantity")
+    .eq("organization_id", org), "Read scenario supply items");
+  if (requestItems.some(row => !requestIds.has(row.request_id) || row.inventory_item_id !== supply.item.id)
+    || (!allowPartial && requestItems.length !== supply.requests.length))
+    throw new Error("Supply items differ from the deterministic request scope.");
+  const itemIds = new Set(requestItems.map(row => row.id));
+  const events = await checked(client.from("supply_request_events").select("request_id,event_kind")
+    .eq("organization_id", org), "Read scenario supply events");
+  if (events.some(row => !requestIds.has(row.request_id)) || (!allowPartial && events.length !== 8))
+    throw new Error("Supply approval/receipt history differs from the scenario scope.");
+  const receipts = await checked(client.from("supply_receipts")
+    .select("id,request_id,request_item_id,receipt_key,base_quantity,inventory_transaction_id")
+    .eq("organization_id", org), "Read scenario supply receipts");
+  const receiptKeys = new Map(supply.requests.map(item => [item.receiptKey, item]));
+  if (receipts.some(row => !receiptKeys.has(row.receipt_key) || !requestIds.has(row.request_id)
+      || !itemIds.has(row.request_item_id)) || (!allowPartial && receipts.length !== supply.requests.length))
+    throw new Error("Supply receipts differ from the deterministic scenario scope.");
+  const receiptIds = new Set(receipts.map(row => row.id));
+  const allowedMovementKeys = new Set(supply.requests.flatMap(item =>
+    [item.openingKey, item.issueKey, item.receiptKey].filter(Boolean)));
+  const movements = await checked(client.from("inventory_transactions")
+    .select("id,site_id,inventory_item_id,movement_key,transaction_type,quantity")
+    .eq("organization_id", org), "Read scenario stock movements");
+  if (movements.some(row => row.inventory_item_id !== supply.item.id || !allowedMovementKeys.has(row.movement_key))
+    || (!allowPartial && movements.length !== 4))
+    throw new Error("Stock movement history differs from the deterministic scenario scope.");
+  const counts = await rowsFor(client, "supply_stock_counts", org);
+  if (counts.length) throw new Error("Unexpected stock count outside the scenario scope.");
+  const links = await checked(client.from("supply_expense_links")
+    .select("receipt_id,expense_posting_id")
+    .eq("organization_id", org), "Read scenario supply expense links");
+  const postingIds = new Set(supply.requests.flatMap(item =>
+    registry?.expenses?.rows.find(row => row.key === item.expenseKey)?.postingIds ?? []));
+  if (links.some(row => !receiptIds.has(row.receipt_id) || !postingIds.has(row.expense_posting_id))
+    || (!allowPartial && links.length !== supply.requests.length))
+    throw new Error("Supply invoice links differ from approved scenario sources.");
+  if (!allowPartial) {
+    for (const item of supply.requests) {
+      const request = requests.find(row => row.request_key === item.requestKey);
+      const requestItem = requestItems.find(row => row.request_id === request.id);
+      const expectedState = item.receivedBaseQuantity === item.packCount * item.baseUnitsPerPack
+        ? "received" : "partially_received";
+      if (request.state !== expectedState || Number(requestItem.pack_count) !== item.packCount
+        || Number(requestItem.base_units_per_pack) !== item.baseUnitsPerPack
+        || Number(requestItem.requested_amount).toFixed(2) !== (item.packCount * item.pricePerPack).toFixed(2)
+        || Number(requestItem.received_base_quantity) !== item.receivedBaseQuantity)
+        throw new Error(`Supply request ${item.key} does not match the source plan.`);
+      const siteMovements = movements.filter(row => row.site_id === plan.sites[item.siteIndex].id);
+      const closing = siteMovements.reduce((sum, row) => sum +
+        (row.transaction_type === "issue" ? -Number(row.quantity) : Number(row.quantity)), 0);
+      if (closing !== item.openingBaseQuantity + item.receivedBaseQuantity - item.issuedBaseQuantity)
+        throw new Error(`Supply stock balance for ${item.key} differs from source movements.`);
+      const receipt = receipts.find(row => row.receipt_key === item.receiptKey);
+      if (Number(receipt.base_quantity) !== item.receivedBaseQuantity
+        || !movements.some(row => row.id === receipt.inventory_transaction_id))
+        throw new Error(`Supply receipt ${item.key} differs from source stock movement.`);
+    }
+  }
+}
+
+async function assertEquipmentScope(client, plan, registry, allowPartial) {
+  const equipment = plan.equipmentCases;
+  const org = plan.organization.id;
+  assertIdSet(await rowsFor(client, "equipment_models", org), [equipment.model.id], "equipment_models", allowPartial);
+  assertIdSet(await rowsFor(client, "equipment_assets", org),
+    [equipment.healthyAsset.id, equipment.repairAsset.id], "equipment_assets", allowPartial);
+  if (!plan.contract) assertIdSet(await rowsFor(client, "site_zones", org), [equipment.zone.id], "site_zones", allowPartial);
+  const assetIds = new Set([equipment.healthyAsset.id, equipment.repairAsset.id]);
+  const siteHistory = await checked(client.from("equipment_asset_site_history").select("asset_id,site_id,ended_at")
+    .eq("organization_id", org), "Read equipment site history");
+  if (siteHistory.some(row => !assetIds.has(row.asset_id) || row.site_id !== equipment.zone.site_id)
+    || (!allowPartial && siteHistory.length !== 2))
+    throw new Error("Asset site history differs from scenario assets.");
+  const checklist = await checked(client.from("equipment_checklist_versions").select("id,model_id,version_number")
+    .eq("organization_id", org), "Read scenario equipment checklist");
+  if (checklist.some(row => row.model_id !== equipment.model.id)
+    || (!allowPartial && (checklist.length !== 1 || checklist[0].version_number !== 1)))
+    throw new Error("Equipment checklist differs from approved synthetic source.");
+  const inspections = await checked(client.from("equipment_inspections").select("asset_id,outcome,checklist_version_id")
+    .eq("organization_id", org), "Read equipment inspections");
+  const checklistIds = new Set(checklist.map(row => row.id));
+  if (inspections.some(row => !assetIds.has(row.asset_id) || !checklistIds.has(row.checklist_version_id))
+    || (!allowPartial && (inspections.length !== 2
+      || !inspections.some(row => row.asset_id === equipment.healthyAsset.id && row.outcome === "care_ok")
+      || !inspections.some(row => row.asset_id === equipment.repairAsset.id && row.outcome === "follow_up_required"))))
+    throw new Error("Equipment inspection outcomes differ from the scenario plan.");
+  const reportKeys = new Set(equipment.repairs.map(item => item.reportKey));
+  const reports = await checked(client.from("equipment_reports").select("id,asset_id,idempotency_key,state")
+    .eq("organization_id", org), "Read scenario equipment reports");
+  if (reports.some(row => !reportKeys.has(row.idempotency_key)
+      || (row.asset_id !== equipment.repairAsset.id && !(allowPartial && row.asset_id === null)))
+    || (!allowPartial && (reports.length !== 2 || reports.some(row => row.state !== "resolved"))))
+    throw new Error("Equipment fault reports differ from the source-backed scenario.");
+  const reportIds = new Set(reports.map(row => row.id));
+  const actions = await checked(client.from("equipment_maintenance_actions")
+    .select("id,report_id,asset_id,action_kind,event_key")
+    .eq("organization_id", org), "Read scenario maintenance actions");
+  if (actions.some(row => !reportIds.has(row.report_id) || row.asset_id !== equipment.repairAsset.id
+      || !row.event_key.startsWith(`scenario-${plan.runId}-`))
+    || (!allowPartial && actions.length !== 8))
+    throw new Error("Maintenance history differs from deterministic scenario actions.");
+  const actionIds = new Set(actions.map(row => row.id));
+  const links = await checked(client.from("equipment_repair_cost_links")
+    .select("maintenance_action_id,asset_id,expense_posting_id,invoice_reference")
+    .eq("organization_id", org), "Read scenario repair invoices");
+  const postingIds = new Set(equipment.repairs.flatMap(item =>
+    registry?.expenses?.rows.find(row => row.key === item.expenseKey)?.postingIds ?? []));
+  const invoiceRefs = new Set(equipment.repairs.map(item => item.invoiceReference));
+  if (links.some(row => !actionIds.has(row.maintenance_action_id)
+      || row.asset_id !== equipment.repairAsset.id || !postingIds.has(row.expense_posting_id)
+      || !invoiceRefs.has(row.invoice_reference))
+    || (!allowPartial && links.length !== equipment.repairs.length))
+    throw new Error("Repair costs differ from approved invoice sources.");
+  if ((await rowsFor(client, "equipment_evidence_links", org)).length)
+    throw new Error("Unexpected equipment evidence outside the scenario scope.");
+}
 async function assertReconciliationScope(client,plan,registry,allowPartial){
   const planned=registry.reconciliation;
   for(const table of ["finance_periods","finance_reconciliation_links"]){
@@ -1018,6 +1317,8 @@ async function generate(name, seed) {
     await generateTime(client,plan,registry,directory);
     await completeProjectScenario(client,plan,registry,directory);
     await generateReconciliationScenario(client,plan,registry,directory);
+    await generateSupplies(client,plan,registry,directory);
+    await generateEquipment(client,plan,registry,directory);
     await assertScope(client, plan, false,registry);
     registry.status = "ready";
     await atomicJson(registryPath, registry);
@@ -1151,7 +1452,8 @@ async function resetPreflight(name) {
   const org = await assertScope(client, plan, true,registry);
   const scenarioUsers = await listScenarioUsers(client, plan);
   assertIdSet(scenarioUsers, registry.authUserIds, "Auth users", registry.status !== "ready");
-  if (org) await countAttached(plan.organization.id, Boolean(plan.contract),Boolean(plan.expenseCases),Boolean(plan.timeCases),Boolean(plan.projects));
+  if (org) await countAttached(plan.organization.id, Boolean(plan.contract),Boolean(plan.expenseCases),
+    Boolean(plan.timeCases),Boolean(plan.projects),Boolean(plan.supplyCases),Boolean(plan.equipmentCases));
   process.stdout.write(`${JSON.stringify({ target: hostedTarget ? `hosted ${hostedTarget.projectRef}` : "local",
     scenarioId: name, runId: registry.runId, organizationId: registry.organizationId,
     seed: registry.seed, generatorVersion: registry.generatorVersion, status: registry.status,
@@ -1162,8 +1464,38 @@ async function resetPreflight(name) {
 }
 async function reset(name) {
   const { directory, registry, plan, client, org, scenarioUsers } = await resetPreflight(name);
+  if (hostedTarget && (plan.supplyCases || plan.equipmentCases))
+    throw new Error("Hosted v9 reset requires a separately reviewed exact-scope cleanup; existing finance-showcase v8 reset remains supported.");
   registry.status = "resetting";
   await atomicJson(join(directory, "registry.json"), registry);
+  if (plan.equipmentCases) {
+    for (const table of ["equipment_repair_cost_links","equipment_evidence_links",
+      "equipment_maintenance_actions","equipment_reports","equipment_inspections",
+      "equipment_checklist_versions","equipment_assets","equipment_models"])
+      await checked(client.from(table).delete().eq("organization_id", plan.organization.id),
+        `Delete scenario ${table}`);
+    await checked(client.from("site_zones").delete().eq("organization_id", plan.organization.id)
+      .eq("id", plan.equipmentCases.zone.id), "Delete synthetic equipment zone");
+  }
+  if (plan.supplyCases) {
+    const scopedOrg = plan.organization.id;
+    if (!/^[0-9a-f-]{36}$/.test(scopedOrg)) throw new Error("Invalid supply scenario organization ID.");
+    // The exact organization and all movement keys were verified by reset-preflight.
+    // The application trigger remains enabled outside this local transaction.
+    executeScenarioSql(`begin;
+      delete from public.supply_expense_links where organization_id='${scopedOrg}';
+      delete from public.supply_receipts where organization_id='${scopedOrg}';
+      delete from public.supply_stock_counts where organization_id='${scopedOrg}';
+      alter table public.inventory_transactions disable trigger supply_stock_movement_immutable;
+      delete from public.inventory_transactions where organization_id='${scopedOrg}';
+      alter table public.inventory_transactions enable trigger supply_stock_movement_immutable;
+      delete from public.supply_request_events where organization_id='${scopedOrg}';
+      delete from public.supply_request_items where organization_id='${scopedOrg}';
+      delete from public.supply_requests where organization_id='${scopedOrg}';
+      delete from public.inventory_items where organization_id='${scopedOrg}';
+      delete from public.vendors where organization_id='${scopedOrg}';
+      commit;`);
+  }
   if(plan.scenario.modules.reconciliation){
     for(const table of ["finance_reconciliation_events","finance_reconciliation_links",
       "finance_period_events","finance_periods"])
@@ -1285,6 +1617,15 @@ async function presenter(name) {
       `Time cases: fixtures/generated/${name}/time-cases.json. Approved labour cost ${plan.expected.controlTotals.finance.approvedLabourCost} CAD.`,
       "Open /finance/time for normal, missing-checkout, overtime, worker-swap and manual project entries. Two exceptions remain unposted.",
       "Open /finance/rates as Director for the confidential midyear effective rate change. Area Managers cannot read rate payloads.",
+    ] : []),
+    ...(plan.supplyCases ? [
+      `Supply control: ${plan.expected.supplies.cases.map(item => `${plan.sites.find(site => site.id === item.siteId)?.name} requested CAD ${item.requestedAmount} and closes at ${item.closingBaseQuantity} ${plan.expected.supplies.unit}`).join("; ")}.`,
+      "Open /supplies. Submit and retry a site request, review Area Manager approval/order, then inspect the receipt, stock movements and one Director-linked approved invoice. The high request has a partial receipt; its requested amount is not a posted cost.",
+      "Open /finance/expenses for the supply posting. Request, order, receipt and stock issue do not create additional expense postings.",
+    ] : []),
+    ...(plan.equipmentCases ? [
+      `Equipment control: ${plan.equipmentCases.repairAsset.asset_code} at ${plan.sites[1].name} has ${plan.expected.equipment.repairs.length} distinct repair sources (${plan.expected.equipment.repairs.map(item => `${item.invoiceReference}: CAD ${item.amount}`).join(", ")}); ${plan.equipmentCases.healthyAsset.asset_code} has a healthy inspection.`,
+      "Open /equipment and the repeat-repair asset. Inspect its approved checklist, attributed inspection, two report-to-maintenance lifecycles, independent return approvals and source-linked costs. Each approved repair posting is linked once.",
     ] : []),
     ...(plan.scenario.modules.reconciliation ? [
       "Open /finance/reconciliation as Director. June has one unique exact repair match, two ambiguous fuel proposals and an unmatched accounting row; it must remain open.",

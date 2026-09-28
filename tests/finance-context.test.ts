@@ -53,6 +53,15 @@ describe("trusted finance scope", () => {
     await expect(getAppAccessContext(clientFor([]).client)).rejects.toThrow("Active CleanOps membership required.");
   });
 
+  it("distinguishes a missing session from a retryable auth outage", async () => {
+    const missing = { auth: { getClaims: async () => ({ data: null, error: null }) } } as unknown as SupabaseClient;
+    await expect(getAppAccessContext(missing)).rejects.toThrow("Authentication required.");
+
+    const unavailable = { auth: { getClaims: async () => ({ data: null,
+      error: { name: "AuthRetryableFetchError" } }) } } as unknown as SupabaseClient;
+    await expect(getAppAccessContext(unavailable)).rejects.toThrow("Authentication service unavailable.");
+  });
+
   it("keeps demo tenant constants out of generic access and finance paths", () => {
     const paths = [
       "src/services/access-context.ts", "src/services/finance-context.ts",

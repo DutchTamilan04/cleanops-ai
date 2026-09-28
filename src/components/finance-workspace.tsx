@@ -299,14 +299,14 @@ export function FinanceWorkspace({
                   });
                   setEditingInventoryId(null);
                 }}>
-                  <label>Item<select name="inventoryItemId" required defaultValue={entry.itemId}>{workspace.items.map((item) => <option key={item.id} value={item.id}>{item.name} · {item.unit}</option>)}</select></label>
+                  <SelectField label="Item" name="inventoryItemId" required defaultValue={entry.itemId}>{workspace.items.map((item) => <option key={item.id} value={item.id}>{item.name} · {item.unit}</option>)}</SelectField>
                   <div className="financeFormRow">
-                    <label>Movement<select name="transactionType" defaultValue={entry.type}><option value="receipt">Supplier receipt</option><option value="issue">Issued to site</option><option value="adjustment">Adjustment</option><option value="count">Stock count</option></select></label>
-                    <label>Supplier<select name="vendorId" defaultValue={entry.vendorId ?? ""}><option value="">No supplier reference</option>{workspace.vendors.map((vendor) => <option key={vendor.id} value={vendor.id}>{vendor.name}</option>)}</select></label>
-                    <label>Quantity<input name="quantity" type="number" min="0.001" step="0.001" defaultValue={entry.quantity} required /></label>
-                    <label>Unit cost<input name="unitCost" type="number" min="0" step="0.01" defaultValue={entry.unitCost} required /></label>
+                    <SelectField label="Movement" name="transactionType" defaultValue={entry.type}><option value="receipt">Supplier receipt</option><option value="issue">Issued to site</option><option value="adjustment">Adjustment</option><option value="count">Stock count</option></SelectField>
+                    <SelectField label="Supplier" name="vendorId" defaultValue={entry.vendorId ?? ""}><option value="">No supplier reference</option>{workspace.vendors.map((vendor) => <option key={vendor.id} value={vendor.id}>{vendor.name}</option>)}</SelectField>
+                    <TextField label="Quantity" name="quantity" type="number" min="0.001" step="0.001" defaultValue={entry.quantity} required />
+                    <TextField label="Unit cost" name="unitCost" type="number" min="0" step="0.01" defaultValue={entry.unitCost} required />
                   </div>
-                  <label>Note<input name="notes" maxLength={1000} defaultValue={entry.notes ?? ""} /></label>
+                  <TextField label="Note" name="notes" maxLength={1000} defaultValue={entry.notes ?? ""} />
                   <div className="financeRowActions">
                     <Button variant="primary" type="submit" disabled={pending}>Save</Button>
                     <Button variant="secondary" type="button" disabled={pending} onClick={() => setEditingInventoryId(null)}>Cancel</Button>
@@ -364,13 +364,13 @@ export function FinanceWorkspace({
                   setEditingLabourId(null);
                 }}>
                   <div className="financeFormRow">
-                    <label>Worker<select name="workerId" defaultValue={entry.workerId ?? ""}><option value="">Unassigned labour</option>{workspace.workers.map((worker) => <option key={worker.id} value={worker.id}>{worker.name}</option>)}</select></label>
-                    <label>Work date<input name="workDate" type="date" defaultValue={entry.workDate} required /></label>
-                    <label>Cost type<select name="costType" defaultValue={entry.type}><option value="regular">Regular</option><option value="overtime">Overtime</option><option value="contractor">Contractor</option></select></label>
-                    <label>Hours<input name="hours" type="number" min="0.01" max="24" step="0.25" defaultValue={entry.hours} required /></label>
-                    <label>Hourly cost<input name="hourlyCost" type="number" min="0" step="0.01" defaultValue={entry.hourlyCost} required /></label>
+                    <SelectField label="Worker" name="workerId" defaultValue={entry.workerId ?? ""}><option value="">Unassigned labour</option>{workspace.workers.map((worker) => <option key={worker.id} value={worker.id}>{worker.name}</option>)}</SelectField>
+                    <TextField label="Work date" name="workDate" type="date" defaultValue={entry.workDate} required />
+                    <SelectField label="Cost type" name="costType" defaultValue={entry.type}><option value="regular">Regular</option><option value="overtime">Overtime</option><option value="contractor">Contractor</option></SelectField>
+                    <TextField label="Hours" name="hours" type="number" min="0.01" max="24" step="0.25" defaultValue={entry.hours} required />
+                    <TextField label="Hourly cost" name="hourlyCost" type="number" min="0" step="0.01" defaultValue={entry.hourlyCost} required />
                   </div>
-                  <label>Note<input name="notes" maxLength={1000} defaultValue={entry.notes ?? ""} /></label>
+                  <TextField label="Note" name="notes" maxLength={1000} defaultValue={entry.notes ?? ""} />
                   <div className="financeRowActions">
                     <Button variant="primary" type="submit" disabled={pending}>Save</Button>
                     <Button variant="secondary" type="button" disabled={pending} onClick={() => setEditingLabourId(null)}>Cancel</Button>

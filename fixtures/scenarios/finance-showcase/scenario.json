@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
-  "generatorVersion": 8,
+  "generatorVersion": 9,
   "scenarioId": "finance-showcase",
   "seed": 20260922,
   "clock": {"start":"2026-06-01","end":"2026-09-30","timezone":"America/Vancouver"},
   "organization": {"name":"Tornado Finance Showcase","siteCount":4,"workerCount":80},
   "referencePack": "tornado-v1",
-  "modules": {"base":true,"contracts":true,"expenses":true,"time":true,"projects":true,"reconciliation":true},
-  "cases": ["healthy_contract","supply_cost_exception","repair_cost_exception","duplicate_whatsapp_receipt","normal_shift","missing_checkout","overtime","worker_swap","rate_change","contract_amendment","one_off_project","reconciliation_exact","reconciliation_ambiguous","reconciliation_unmatched","period_close","late_import"]
+  "modules": {"base":true,"contracts":true,"expenses":true,"time":true,"projects":true,"reconciliation":true,"supplies":true,"equipment":true},
+  "cases": ["healthy_contract","supply_cost_exception","repair_cost_exception","duplicate_whatsapp_receipt","normal_shift","missing_checkout","overtime","worker_swap","rate_change","contract_amendment","one_off_project","reconciliation_exact","reconciliation_ambiguous","reconciliation_unmatched","period_close","late_import","normal_supply_request","high_supply_request","partial_supply_receipt","duplicate_supply_retry","healthy_asset_inspection","repeat_asset_repair"]
 }

@@ -1,6 +1,10 @@
 # ADR 014: UX system V2 tokens, typefaces and component primitives
 
-Status: Proposed, 2026-09-25 (issue #111; accepted when merged into `codex/ui-preview`).
+Status: Accepted in `codex/ui-preview`, 2026-09-25 (issue #111). Selective visual promotion to current main is tracked by #142.
+
+Implementation note (2026-09-27): the promoted 12 component modules use React and
+native HTML controls. No shadcn/headless packages, custom listbox, dialog or sheet
+are included in #142; those portions of the decision remain future scoped work.
 
 ## Context
 

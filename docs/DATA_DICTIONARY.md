@@ -104,11 +104,17 @@ Live OpenAI code exists but production execution remains gated by config, budget
 | `incident_actions` | Action/note recorded for incident. | incident, action key, note, state, recorder/time. |
 | `incident_timeline_events` | Chronological incident history. | incident, event key/type, description, occurrence time, actor. |
 | `incident_evidence` | Link between incident and task evidence. | incident, evidence, linker/time. |
-| `equipment_reports` | Equipment issue intake, not a full maintenance system. | site/zone, idempotency key, equipment label (free text), issue, state, report time/worker, maintenance reference, resolved time. |
+| `equipment_reports` | Neutral equipment issue intake. Optional `asset_id` links a report to a register asset only when both were at the same site at link time. | site/zone, idempotency key, equipment label, issue, state, report time/worker, asset, maintenance reference, resolved time. |
 | `equipment_models` | Organization catalogue of machine models. Read by every active role; written only by administrators. | `model_code`, `manufacturer`, `model_name`, `category`, `spec_summary`, `source_url`, `is_demo_reference`. Unique per organization on model code and on manufacturer + model name. |
-| `equipment_assets` | Machine register per site (one row per physical unit). Read-only to browser roles; site managers hold RLS insert/update/delete policies but only `select` is granted to `authenticated`, so writes currently come from seed/service role. | `site_id`, `model_id`, `asset_code` (unique per organization), `status`, `condition`, `serial_number`, `runtime_hours`, `last_service_date`, `next_service_date`, `notes`, `is_demo`. |
+| `equipment_assets` | Machine register per site (one row per physical unit). Browser writes use scoped workflow RPCs; direct table writes are not granted to `authenticated`. | `site_id`, `model_id`, `asset_code` (unique per organization), `status`, `condition`, `serial_number`, nullable `runtime_hours`, `acquired_on` and `acquisition_source_row_id`, service dates, `notes`, `is_demo`. |
+| `equipment_asset_site_history` | Observed initial register site and later Director-approved site movements. Earlier location before migration is unknown. | asset, site, start/end, reason, actor. |
+| `equipment_checklist_versions` | Director-approved source-backed manufacturer or customer instructions for an equipment model. Never generated from AI. | model, version, source kind/reference, instruction JSON, approver/time. |
+| `equipment_inspections` | Attributed post-use inspection; operator and inspector are separate where the operator is known. Follow-up may be open or overdue. | asset/site, checklist version, operator, inspector, outcome, answers/notes, due time. |
+| `equipment_maintenance_actions` | Append-only triage, request, recorded work completion, return decision and correction events for a linked fault. | asset/site/report, idempotent event key, kind, notes, vendor reference, actor/time, corrected event. |
+| `equipment_repair_cost_links` | One posted repair expense per link, with optional accepted accounting source row. The expense posting is the operational total; accounting evidence is not added again. | historical site/asset/action, posting, optional source row, invoice reference, linker/time. |
+| `equipment_evidence_links` | Site-checked association of an existing ready private `task_evidence` item to one inspection or maintenance event; source media remains in the original evidence record. | asset/site, event, evidence, linker/time. |
 
-`equipment_assets.status` is one of `available`, `in_use`, `maintenance`, `out_of_service`, `proposed`; `condition` is one of `new`, `good`, `fair`, `poor`, `not_applicable`. There is no zone, acquisition date, location history or foreign key between `equipment_reports` and `equipment_assets`: a report names its equipment only by free-text label, so repair history cannot yet be attributed to an asset.
+`equipment_assets.status` is one of `available`, `in_use`, `maintenance`, `out_of_service`, `proposed`; `condition` is one of `new`, `good`, `fair`, `poor`, `not_applicable`. Unknown acquisition date/cost, period operating hours and unverified repair completion remain unknown. Site movement leaves historic report, inspection and cost `site_id` unchanged. A report's free-text label remains as originally submitted after asset linkage.
 
 ## SLA and client reporting
 
@@ -128,7 +134,13 @@ Live OpenAI code exists but production execution remains gated by config, budget
 |---|---|---|
 | `vendors` | Organization supplier catalogue. | vendor code, name, contact reference, active. |
 | `inventory_items` | Cleaning supply catalogue. | SKU, name, category, unit of measure, reorder level, active. |
-| `inventory_transactions` | Site stock movement/cost; Director-editable, audited. | site, optional vendor, item, optional source message, type receipt/issue/adjustment/count, quantity (> 0), unit cost, generated total cost (`round(quantity * unit_cost, 2)`), occurrence time, notes. |
+| `inventory_transactions` | Site stock movement/cost. Legacy direct ledger rows remain Director-editable and audited; CLEAN-017 workflow movements are append-only. | site, optional vendor, item, optional source message/request item, type receipt/issue/adjustment/count or opening/transfer in/out/return/count adjustment in/out, quantity (> 0), unit cost, generated total cost (`round(quantity * unit_cost, 2)`), occurrence time, notes, movement key/leg and actor. |
+| `supply_requests` | Assigned-site operational request; approval/order/receipt state is separate from an expense. | organization/site, idempotency key, requester, purpose, CAD estimate currency, status/version, contract supply responsibility snapshot, decision and order reference. |
+| `supply_request_items` | Requested product and conversion to the catalogue base unit; estimated price is not a posting. | request, item, pack count, base units per pack, generated base quantity and requested amount, price source/reference, received base quantity. |
+| `supply_request_events` | Append-only request decisions, revisions, order and receipt history. | request, event kind, actor, detail, time. |
+| `supply_receipts` | Idempotent partial/final delivery linking an approved order item to one stock receipt movement. | request/item, receipt key, base quantity, inventory transaction, receiving actor/time. |
+| `supply_stock_counts` | Audited counted quantity and resulting adjustment, including a zero-difference count. | site/item, count key, previous/count quantity, optional adjustment transaction, actor/reason/time. |
+| `supply_expense_links` | Director-only source link from one supply receipt to one approved supply expense posting; it does not post an additional cost. | receipt, expense posting, actor/time; each side can be linked once. |
 | `labor_cost_entries` | Site labour cost; Director-only read and write, audited. Time-linked postings are immutable snapshots; unlinked rows remain administrative adjustments/import references. | site, optional worker/task/source message/time entry/contract version/project reference, work date, hours (> 0, <= 24), hourly cost, generated total cost (`round(hours * hourly_cost, 2)`), type regular/overtime/contractor, notes. |
 | `finance_import_batches` | Immutable record of one accepted/rejected CSV import. Director-only. | organization, source file name/hash, mapping version, currency, service period, state (preview/accepted/superseded/rejected), completeness, accepted_by/at, supersedes_batch_id. |
 | `finance_source_rows` | Immutable imported line, one per source document line. Director-only. | batch, source document/line ID, optional site/contract/job/asset reference, optional link to a supply or repair record, service/accounting period, currency, category, amount, tax, approval/recognition/allocation state, raw row JSON. |
@@ -138,6 +150,8 @@ Live OpenAI code exists but production execution remains gated by config, budget
 | `finance_period_events` | Append-only period transition and correction history. | period, event kind, close version, snapshot, reopen reason, actor/time. |
 | `finance_reconciliation_links` | Audited positive amount from one accepted direct-cost allocation to one posted operational cost. Both sides may be split across different records up to their remaining balance. | period, site, source row/allocation, operational type/id, CAD amount, deterministic/manual rule, rationale, active/voided state. |
 | `finance_reconciliation_events` | Append-only match creation and void history. | link, actor/time, rule, amount or correction reason. |
+| `finance_exception_reviews` | Manager disposition of a derived, versioned finance review prompt; it is not the source financial fact. | organization/site/month, rule/source key, open/snoozed/resolved state, note, authenticated owner and update actor. |
+| `finance_exception_review_events` | Append-only history when a prompt is first owned or its state/note/owner changes. | review, previous/current state, note, authenticated actor/time. |
 | `finance_ledger_audit_events` | Append-only edit/delete history for both ledgers above. | organization/site, `ledger` (inventory_transaction/labor_cost_entry), `record_id`, actor, action (update/delete), `before`/`after` JSON, time. |
 
 Access (migrations `20260921051826_casino_demo_rbac_equipment`, `20260921120000_clean_029_supply_catalogue_rbac`, `20260921230000_clean_020_reconciled_finance_imports`, `20260922034200_clean_028_finance_ledger_edits`): `inventory_transactions` is readable by a Director or an Area Manager with a grant to that site (`private.can_view_site_finance`); `labor_cost_entries` is readable by a Director only (`private.can_administer_org`), narrowed by CLEAN-020 so individual payroll/labour detail never reaches Area Managers — they see only the aggregate `direct_labour` figure in `finance_reconciliations`. Since issue #48, a Director may also update and delete rows on either ledger (`private.can_edit_site_finance`); Area Managers and every other role remain read-only or have no access at all. `vendors` and `inventory_items` are readable only by Directors, Area Managers and Operations Managers (`private.can_view_supply_catalogue`) and writable only by Directors (`private.can_edit_supply_catalogue`), matching the current `/finance` UI.
@@ -184,7 +198,9 @@ workers + task_runs -> labor_cost_entries -> finance_ledger_audit_events
 finance_import_batches -> finance_source_rows -> finance_source_allocations -> finance_reconciliations
 
 organizations -> equipment_models
-sites + equipment_models -> equipment_assets      (no link yet to equipment_reports)
+sites + equipment_models -> equipment_assets -> equipment_reports (optional checked link)
+equipment_assets -> equipment_asset_site_history + equipment_inspections + equipment_maintenance_actions
+equipment_maintenance_actions -> equipment_repair_cost_links -> expense_postings (+ optional finance_source_rows)
 ```
 
 ## Controlled vocabularies
@@ -281,7 +297,7 @@ Private helpers used by RLS (schema `private`, not callable by browsers): `has_o
 
 `docs/DATA_MODEL.md` lists logical tables that have no migration: `ai_decisions`, `ai_usage` (superseded by `quality_decisions` and `quality_ai_runs`) and a generic `audit_events` (superseded by `evidence_audit_events`, `review_audit_events` and `reporting_audit_events`).
 
-Tables proposed by open issues #29-#36 and not yet created: announcements and acknowledgements (#29), supply requests/orders/stock (#30; only the `inventory_*` ledger exists), asset inspections/checklists/repair cost lines (#31; only the read-only `equipment_assets` register exists), absence register (#32), handover and complaints (#36). CLEAN-020 implements neutral finance imports and reconciliation; it does not implement a Sage connector, GL, payments or payroll calculation.
+Tables proposed by open issues #29-#36 and not yet created: announcements and acknowledgements (#29), absence register (#32), handover and complaints (#36). CLEAN-017 now provides supply requests, orders and stock history; CLEAN-018 adds asset inspections, checklists and repair-cost links. CLEAN-020 implements neutral finance imports and reconciliation; it does not implement a Sage connector, GL, payments or payroll calculation.
 
 ### Accounting reconciliation and period close — CLEAN-038
 
@@ -360,6 +376,6 @@ Migration `20260923165223_clean_036_time_and_labour_costing.sql` adds:
 | `worker_cost_rate_events` | Immutable rate creation, interval close and supersession history. | Before/after, actor, reason and time; Director-only read. |
 | `time_entries` | Operational source hours before cost. | Organization/site/worker, optional assignment/shift/task/contract/project provenance, site-local work date, timestamps, up to 24 hours, cost class, draft/exception/approved/rejected/posted state, reviewer, revision and optional posted ledger pointer. One derived row per shift assignment. Missing checkout and cancelled assignment remain exceptions until human review. |
 | `time_entry_events` | Immutable derivation, source refresh, manual entry, review and posting history. | Organization/site/time entry, before/after, reason and actor. Contains no hourly rate. |
-| `labor_cost_entries.time_entry_id` | One approved cost posting per time entry. | Director-only hourly cost snapshot and generated total; posted time-linked rows cannot be edited or deleted. `contract_version_id` and `project_reference` carry source attribution for later #65/#66 work. |
+| `labor_cost_entries.time_entry_id` | One approved cost posting per time entry. | Director-only hourly cost snapshot and generated total; posted time-linked rows cannot be edited or deleted. `contract_version_id` and `project_reference` retain contract/project attribution for implemented project and reconciliation paths. |
 
 `derive_shift_time_entry`, `create_manual_time_entry`, and `review_time_entry` require an active operational reviewer with site access. `set_worker_cost_rate` and `post_approved_time_cost` require a Director. Browser roles have no direct write grants on time, rate, or their audit tables. The posting RPC completes both foreign-key links in one transaction. Six-decimal hours are a technical representation of elapsed time, not an overtime or payroll policy; manual input with finer precision is rejected. No statutory deductions, wage calculation or currency conversion is implied.

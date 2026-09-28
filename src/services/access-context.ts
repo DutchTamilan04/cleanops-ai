@@ -73,6 +73,9 @@ export async function getAppAccessContext(
   const { data: claimsData, error: claimsError } = await client.auth.getClaims();
   const userId =
     typeof claimsData?.claims?.sub === "string" ? claimsData.claims.sub : null;
+  if (claimsError?.name === "AuthRetryableFetchError") {
+    throw new Error("Authentication service unavailable.");
+  }
   if (claimsError || !userId) throw new Error("Authentication required.");
 
   const membershipResult = await client

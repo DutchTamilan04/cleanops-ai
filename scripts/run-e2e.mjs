@@ -73,7 +73,7 @@ for (const persona of [
   { email: environment.CLEANOPS_E2E_SUPERVISOR_EMAIL, name: "E2E Supervisor", membershipId: "20000000-0000-4000-8000-000000000008", role: "site_supervisor" },
   { email: environment.CLEANOPS_E2E_OPERATIONS_EMAIL, name: "E2E Operations Manager", membershipId: "20000000-0000-4000-8000-000000000007", role: "operations_manager" },
   { email: environment.CLEANOPS_E2E_CLEANER_EMAIL, name: "E2E Cleaner", membershipId: "20000000-0000-4000-8000-000000000004", role: "cleaner" },
-  { email: environment.CLEANOPS_E2E_CLIENT_EMAIL, name: "E2E Client", membershipId: "20000000-0000-4000-8000-000000000005", role: "client_viewer" },
+  { email: environment.CLEANOPS_E2E_CLIENT_EMAIL, name: "E2E Client", membershipId: "20000000-0000-4000-8000-000000000009", role: "client_viewer" },
 ]) {
   const users = await admin.auth.admin.listUsers({ page: 1, perPage: 100 });
   if (users.error) throw users.error;
@@ -88,7 +88,7 @@ for (const persona of [
     person = created.data.user;
   }
   if (persona.role === "cleaner") cleanerUserId = person.id;
-  if (persona.role === "area_manager" || persona.role === "cleaner" || persona.role === "client_viewer") {
+  if (persona.role === "area_manager" || persona.role === "cleaner") {
     const update = await admin.from("memberships").update({ user_id: person.id }).eq("id", persona.membershipId);
     if (update.error) throw update.error;
   } else {
@@ -115,6 +115,15 @@ const supervisorSiteAccess = await admin.from("member_site_access").upsert({
   starts_at: "2026-01-01T00:00:00Z",
 }, { onConflict: "id" });
 if (supervisorSiteAccess.error) throw supervisorSiteAccess.error;
+
+const clientSiteAccess = await admin.from("member_site_access").upsert({
+  id: "41000000-0000-4000-8000-000000000009",
+  organization_id: "10000000-0000-4000-8000-000000000001",
+  membership_id: "20000000-0000-4000-8000-000000000009",
+  site_id: "40000000-0000-4000-8000-000000000001",
+  starts_at: "2026-01-01T00:00:00Z",
+}, { onConflict: "id" });
+if (clientSiteAccess.error) throw clientSiteAccess.error;
 
 if (productionMode) {
   const build = spawnSync("npm", ["run", "build"], { stdio: "inherit", env: environment });

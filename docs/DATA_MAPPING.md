@@ -2,7 +2,7 @@
 
 Purpose: source-to-target map for implemented pages and server workflows. Exact behavior is owned by current code, migrations and tests.
 
-Last updated: 2026-09-24 for hosted fixture commands.
+Reviewed: 2026-09-28 against `main` at `7d16984`. Customer-facing procedures are in [finance training](finance/README.md).
 
 ## Route summary
 
@@ -18,6 +18,13 @@ Roles per route come from `src/config/navigation.ts` and the page guards; RLS/RP
 | `/finance` | area manager (read only), director (read + write) | finance integration + actions | Site-scoped supplier/item setup, inventory and labour ledgers, accepted accounting summaries, and the message context queue. Missing accounting import tables show a partial availability notice. |
 | `/finance/inbox` | granted area manager, director | expense integration + review actions | Candidate, source/receipt link, deterministic proposal and human resolution. |
 | `/finance/expenses` | granted area manager, director | expense integration + Director approval action | Reviewed claims, source drill-through, allocations and posted cost. |
+| `/finance/contracts`, `/finance/contracts/new`, contract review | director, granted area manager; operations manager operational read | contract integration + actions | Versioned draft, source extraction/human decisions, Director activation and expected revenue. |
+| `/finance/time` | supervisor, area manager, operations manager, director at permitted sites | time integration + actions | Attendance-derived/manual draft, exception review and Director-only cost posting. |
+| `/finance/rates` | director | time integration + rate actions | Confidential effective-dated worker cost rates and history. |
+| `/finance/projects` | director, granted area manager | project RPCs + actions | One-off project terms, existing source links and contribution states. |
+| `/finance/reconciliation` | director; granted area manager aggregate read | reconciliation integration + actions | Accepted accounting/operational matching and Director month close. |
+| `/supplies` | supervisor and managers at permitted sites | supply integration + RPC actions | Request, approval, order, receipt, stock history and approved-expense link. |
+| `/equipment`, `/equipment/[id]` | supervisor and managers at permitted sites | equipment integration + RPC actions | Asset, checklist, inspection, fault, maintenance, cost link and site history. |
 | `/incidents` | supervisor, area manager, operations manager, director | reporting integration + incident actions | Incident and equipment intake/correction. |
 | `/reports` | client viewer, supervisor, area manager, operations manager, director | reporting integration + report actions | SLA snapshot preparation and release. |
 | `/reports/client` | client viewer (and directors for inspection) | reporting integration | Released-only redacted client report. |
@@ -27,7 +34,7 @@ Roles per route come from `src/config/navigation.ts` and the page guards; RLS/RP
 | UI/behavior | Source | Rule |
 |---|---|---|
 | Sign-in | Supabase Auth | Cookie-bound session. |
-| Persona selector | `scripts/provision-demo-logins.mjs` | 17 named demo personas (2 directors, 2 area managers, 4 supervisors, 9 cleaners) provisioned with one shared rotated password; not in `supabase/seed.sql`. |
+| Persona selector | `scripts/provision-demo-logins.mjs` and scenario-generated personas | Named synthetic accounts are provisioned separately from the base seed; the active selector/manifest controls the count and protected password. Do not use these accounts for a customer tenant. |
 | Organization role | `memberships.role/state` | Active membership required. |
 | Site access | `member_site_access` | Directors and operations managers see every org site; other roles only sites with an active grant (`starts_at <= now < ends_at`). |
 | Supervisor/cleaner/client perspective | membership role + hosted capability | Page runtime checks capability before loading workflow data. |
@@ -47,6 +54,8 @@ Source: `src/integrations/operations/supabase-site-portfolio.ts`, rendered by `S
 | Eligible workers | `worker_site_permissions` | Count where `state='active'` (not filtered by `valid_until`). |
 | Equipment assets | `equipment_assets` + `equipment_models` | Asset code, category, manufacturer/model, status, condition, last/next service date. |
 | Equipment issues | `equipment_reports` | Label and state, newest first. |
+
+`/equipment` lists only assets at sites from the authenticated access context. `/equipment/[id]` joins the existing asset/model register to site history, versioned checklists, attributed inspections, linked fault reports and maintenance actions. Existing `record_equipment_report` still owns neutral intake; `link_equipment_report_asset` checks the site at link time. `record_equipment_inspection` requires a model-matched approved checklist and separate known operator/inspector; `record_equipment_maintenance_action` enforces the ordered fault lifecycle and independent return approver. `move_equipment_asset` changes only the asset's current site and appends movement history. `link_equipment_repair_cost` requires an approved same-site repair posting, allows one optional accepted accounting source row and prevents a second link for the same posting. The detail page displays operational posted cost once; accepted accounting is shown as reconciliation evidence, never a second addition. `link_equipment_evidence` checks ready private source evidence at the event site. Source notes and evidence are not edited by the browser; corrections create attributed maintenance events.
 
 The interactive command view below is shown only when the account can manage operations and either is a director or has a grant to the fixed walkthrough site `DEMO_SITE_ID` (`src/services/operations-runtime.ts`).
 
@@ -217,6 +226,12 @@ Fixed (issue #55): `getFinanceWorkspace` now takes a `canReadLabour` flag and sk
 
 The original ledger forms predate the accepted accounting import and source-backed finance overview described below; do not read their entries as the only finance source. The current CSV import, `finance_reconciliations`, contract expected revenue and per-site contribution are implemented in the later sections of this map. `source_message_id` exists on the two older direct ledgers but those forms do not set it; normal expense intake and approved-time posting use their dedicated source-linked flows.
 
+## /supplies — request, approval and stock history (CLEAN-017)
+
+`getSupplyWorkspace` uses the authenticated RLS client for assigned-site requests/items/events/receipts. Supervisor item choices and stock quantities/history come from the scoped `list_supply_request_items`, `list_site_supply_stock` and `list_site_supply_stock_history` RPCs; these omit vendor contact, individual worker rates and financial ledger cost fields. Managers receive `list_supply_site_comparison` aggregates only for sites they may approve. Requested/currently approved CAD estimates are grouped by request creation month, receipts by receipt month, and linked approved expense by claim date; each remains visible when the other events occurred in a different month. Expense per approved labour hour is N/A when hours are missing or zero. Accounting reconciliation is a separate Finance view.
+
+`performSupplyAction` validates input and site access, then invokes scoped RPCs for submit/revise/decide/order/receive/cancel, stock issue/return/transfer/count and Director-only expense linking. The RPCs enforce role/site checks and transactional state changes independently. A receipt inserts one idempotent `inventory_transactions` receipt and updates the remaining order quantity; a stock issue is recorded with zero financial posting value. A count creates an adjustment event, never silently overwrites old movements. Existing direct inventory ledger rows retain their earlier Director audit behavior; workflow movements with a `movement_key` are immutable. The form currently submits through the authenticated app path; official WhatsApp message intake is not wired to supply requests.
+
 ## /finance — WhatsApp context queue
 
 Fixed (issue #50): `MessageContextQueue` is rendered on `/finance` below the ledgers, for both Director and Area
@@ -301,7 +316,7 @@ Client view does not expose raw evidence, private worker statements, raw message
 | Approval | `approve_finance_expense` checks Director authorization, resolved site, verified receipt, item/total and allocations, and duplicate posted receipt hash. It atomically writes immutable `expense_postings` and audit; retry returns the existing claim. |
 | Posted expense | `/finance/expenses` shows source message, original receipt, site/project allocation, approval actor and direct cost. Employee reimbursement is a separate pending state; equipment purchase is flagged for asset review. |
 
-These postings do not mutate CLEAN-020 `finance_reconciliations`; #66 owns accounting reconciliation and period close.
+These postings do not themselves mutate accepted accounting totals. CLEAN-038 provides separate reconciliation links and Director-controlled period close.
 
 ## /finance accounting imports
 
@@ -311,7 +326,15 @@ These postings do not mutate CLEAN-020 `finance_reconciliations`; #66 owns accou
 | Accepted import history | `finance_import_batches` (Director only) |
 | Site contribution | `finance_reconciliations` (Director or granted Area Manager) |
 
-`previewFinanceImport` validates source IDs, periods, currency, category, amount, site mapping, approval and recognition. `acceptFinanceImport` hashes the unchanged CSV, calls `stage_finance_csv_import`, then `accept_finance_import`. The hash plus mapping version is the idempotency key. Raw rows and individual labour detail never feed the Area Manager query. Direct contribution is recognized revenue minus direct labour, supplies, repairs and other direct costs; zero revenue produces an N/A margin in the UI.
+`previewFinanceImport` validates source IDs, periods, currency, category, amount, site mapping, approval and recognition. Optional operational reference type and ID must appear together; the type must be one of `supply_invoice`, `supply_receipt`, `repair_invoice` or `repair_report`, and the ID must be a UUID. Invalid references produce row-specific preview errors. `acceptFinanceImport` reparses the unchanged CSV, hashes it, calls `stage_finance_csv_import`, then `accept_finance_import`. The hash plus mapping version is the idempotency key. Raw rows and individual labour detail never feed the Area Manager query. Direct contribution is recognized revenue minus direct labour, supplies, repairs and other direct costs; zero revenue produces an N/A margin in the UI.
+
+### Manager overview and explained prompts (CLEAN-021)
+
+`/finance` calls `getFinanceSummary` with the authenticated organization, its granted sites and the selected month. Contract expectations remain separate from current accepted `finance_reconciliations`; their version IDs resolve to the source contract for a single-contract revenue variance. `list_finance_period_site_status` supplies the period ID, close, coverage and stale status. Stale-close and unmatched-cost prompts link to that exact accounting period. Approved `expense_postings` are joined to claim dates for month and previous-month supply comparison; `equipment_repair_cost_links` connect approved repair postings to an asset without adding a second expense. Time entries supply approved-hour denominators and exception IDs. `supply_requests` supplies a selected-month pending/partial request count. Staffing coverage and notice acknowledgements remain N/A until period-scoped sources are connected. The Area Manager query does not fetch `labor_cost_entries`; it receives only aggregate accepted labour from `finance_reconciliations`.
+
+`summarizeSite` computes contribution only for a complete, current closed period; `combineSites` aggregates complete-site numerators first. The all-site result remains N/A if any selected site is incomplete, while a separately labelled covered-site subtotal states its coverage. Missing hours give N/A for expense per hour. `financeReviewRulesV1` holds the synthetic, versioned revenue variance, month-over-month supply and 12-month repeat-repair thresholds pending manager calibration. Rules produce review prompts with observed value, baseline, sample count, period and a link to the source claim, asset, time entry or owning workspace. The UI never treats a prompt as evidence of misconduct.
+
+`reviewFinanceException` re-authenticates, validates the submitted key with Zod, recomputes the active site prompt, then upserts `finance_exception_reviews`. RLS and a database trigger independently enforce finance site access, source-site identity, authenticated ownership and immutable prompt scope; an append-only event records a changed review state/note/owner. The table is an optional read while the new migration rolls out; the UI disables review controls until it exists. Review state does not edit the financial source or make an incomplete period complete.
 
 ## /finance/contracts — manual contract setup and review
 
@@ -327,7 +350,7 @@ These postings do not mutate CLEAN-020 `finance_reconciliations`; #66 owns accou
 | Return submitted version for revision | `return_contract_version_to_draft` validates the editor, site, `in_review` state and reason, restores `draft` on the same `contract_versions` row and appends an actor-stamped `contract_events` record; repeated submissions each receive a distinct event ID |
 | Submit/approve/preview/activate | Dedicated RPCs; activation writes canonical operational rows and `contract_revenue_expectations` transactionally |
 
-Expected revenue is a contract projection and does not enter CLEAN-020 `finance_reconciliations` as recognized revenue. The manager finance overview remains issue #34.
+Expected revenue is a contract projection and does not enter CLEAN-020 `finance_reconciliations` as recognized revenue. The manager finance overview is implemented by CLEAN-021 and keeps expected and recognized values separate.
 
 ### Contract document upload and extraction (CLEAN-034)
 
