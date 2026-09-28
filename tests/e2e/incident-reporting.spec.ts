@@ -31,6 +31,7 @@ test("supervisor records events, computes the report and releases only its redac
   await expect(page.getByText("N/A — scheduled safety checks are not implemented in this prototype.")).toBeVisible();
   await expect(page.getByText("Client access is still closed")).toBeVisible();
   await page.getByRole("button", { name: "Release report to client" }).click();
+  await page.getByRole("dialog", { name: "Release this report to the client?" }).getByRole("button", { name: "Release to client" }).click();
   await expect(page.getByText("Client access enabled")).toBeVisible();
   await expect(page.getByText("report.released")).toBeVisible();
 

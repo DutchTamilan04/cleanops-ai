@@ -17,6 +17,10 @@ The #110 audit found inconsistent hierarchy, two competing casino selectors and 
 - **Primitives:** shadcn/ui is adopted **selectively** as source-owned code, only for components that need robust accessible behaviour: Dialog/Sheet, Select/Popover (casino listbox) and DropdownMenu. Each copied component is restyled with V2 tokens and reviewed like our own code. Simple components (Button, Badge, KPI card, Alert, Table, State views, Navigation) are written directly with tokens and semantic HTML. No other UI kit is added.
 - Adoption is incremental per #112/#113 slice; legacy classes are removed only when unused.
 
+### Amendment 2026-09-28 (#155): confirmation dialog
+
+The confirmation dialog (`ConfirmAction`) uses the native `<dialog>` element with `showModal()` instead of a shadcn/ui (Radix) Dialog. The platform element already provides the behaviour that motivated the primitive: modal top layer, inert background, Escape to cancel. The component moves focus to Cancel on open and back to the trigger on close. This keeps the repository free of a new UI dependency (AGENTS dependency discipline). Revisit and adopt the shadcn/ui Dialog if a dialog needs nested focus management, scroll-locked long forms or behaviour the native element cannot provide in supported browsers.
+
 ## Alternatives
 
 - Full shadcn/ui migration: fastest visual uniformity, but rewrites every screen at once against the "no wholesale migration" boundary and risks Finance MVP behaviour.

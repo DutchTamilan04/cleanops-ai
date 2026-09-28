@@ -5,7 +5,7 @@ import { acceptFinanceImport, performFinanceAction, previewFinanceImport, type F
 import type { FinanceWorkspace } from "@/integrations/finance/supabase-finance";
 import type { FinanceImportPreview } from "@/services/finance-csv";
 import { formatUtcTimestamp } from "@/lib/format-utc-timestamp";
-import { Alert, Button, FilterBar, KpiCard, KpiCardGrid, SelectField, StatusBadge, TextField } from "@/components/ui";
+import { Alert, Button, ConfirmAction, FilterBar, KpiCard, KpiCardGrid, SelectField, StatusBadge, TextField } from "@/components/ui";
 
 const money = new Intl.NumberFormat("en-CA", { style: "currency", currency: "CAD" });
 const importedMoney = (amount: number, currency: string) => `${currency || "—"} ${amount.toLocaleString("en-CA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -121,14 +121,18 @@ export function FinanceWorkspace({
                 <SelectField label="Correction of" value={supersedesBatchId} onChange={(event) => setSupersedesBatchId(event.target.value)}>
                   <option value="">New import</option>{workspace.imports.filter((entry) => entry.state === "accepted").map((entry) => <option key={entry.id} value={entry.id}>{entry.fileName}</option>)}
                 </SelectField>
-                <Button variant="primary" type="button" disabled={pending || !importFile} onClick={() => {
+                <ConfirmAction label="Accept import" disabled={pending || !importFile}
+                  title="Accept this accounting import?"
+                  consequence="Accepted rows become the recognized actuals for these casinos and periods. To change them later, accept a correction import that supersedes this one."
+                  confirmLabel="Accept accounting import"
+                  onConfirm={() => {
                   if (!importFile) return;
                   startTransition(async () => {
                     const result = await acceptFinanceImport({ ...importFile, completeness, supersedesBatchId: supersedesBatchId || undefined });
                     setNotice(result);
                     if (result.ok) setPreview(null);
                   });
-                }}>Accept import</Button>
+                }} />
               </div> : null}
             </div> : null}
             {workspace.imports.length ? <p className="recordNote">Last import: {workspace.imports[0].fileName} · {workspace.imports[0].state} · {workspace.imports[0].acceptedAt ? formatUtcTimestamp(workspace.imports[0].acceptedAt) : "not accepted"}</p> : null}
