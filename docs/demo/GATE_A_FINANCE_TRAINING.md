@@ -1,6 +1,6 @@
 # Gate A finance training and presenter guide
 
-**Audience:** presenter, Director, Area Manager and UAT reviewer. **Status:** source-backed synthetic demonstration, not a customer-data pilot. **Snapshot:** hosted finance-showcase generator version 8, seed 20260927, run cf17ee03-dfe7-59f6-8d18-faf51007d919. The screenshots in this guide were captured from the deployed app on 2026-09-25 UTC; the four images labelled **historical UAT** come from the prior 20260926 test run.
+**Audience:** presenter, Director, Area Manager and UAT reviewer. **Status:** historical source-backed synthetic Gate A demonstration, not a customer-data pilot or a current-main screenshot certification. **Snapshot:** hosted finance-showcase generator version 8, seed 20260927, run cf17ee03-dfe7-59f6-8d18-faf51007d919. The screenshots in this guide were captured from the deployed app on 2026-09-25 UTC; the four images labelled **historical UAT** come from the prior 20260926 test run. `main` now includes later supply/equipment and manager-overview functions plus UI changes; use the [current finance operator guides](../finance/README.md) for procedures and recapture screenshots after a newly asserted hosted run.
 
 Start here for a spoken demonstration. Use [Gate A finance process flows](GATE_A_FINANCE_PROCESS_FLOWS.md) to train an operator on inputs, approvals, persistence and failure states. Use [Finance UAT](FINANCE_UAT.md) for state-changing test cases and [Gate A execution](GATE_A_EXECUTION.md) for what was actually verified. Generated controls in the active local expected-result manifest under fixtures/generated/hosted/PROJECT_REF/finance-showcase/expected.json supersede any amount printed here after the next reset. Generated manifests are intentionally not committed.
 
@@ -123,7 +123,7 @@ Use the current local generated fixture descriptors (expense-receipts.json, cont
 
 *Historical UAT — a corrected September batch was linked and closed. This is a recorded test transition, not the current run’s default September state.*
 
-### D. Additional implemented Finance & inventory controls
+### D. Additional implemented Finance & inventory controls at the Gate A snapshot
 
 Below the source-backed site summary, a Director can add an organization supplier and inventory item, record a site stock movement, and record a separately labelled direct labour adjustment. The database calculates ledger totals and audits later edits/deletes. Use the approved-time route for normal labour; the direct form is an administrative adjustment, not attendance-derived pay. The selected-site message context queue lets a Director or granted Area Manager confirm a source message's site, zone, task, worker and sender role without posting an expense. These controls are optional in the 10–12 minute finance presentation; [process flows §§12–13](GATE_A_FINANCE_PROCESS_FLOWS.md#12-supplier-catalogue-stock-ledger-and-administrative-adjustments) document their steps and boundary.
 

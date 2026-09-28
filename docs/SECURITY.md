@@ -89,9 +89,11 @@ membership plus an active grant to that site before returning a redacted snapsho
 guessed IDs, another site in the same tenant, another tenant and private-original denial.
 
 CLEAN-027 and the role-scoped demo migration (`20260921051826`) protect finance and equipment data.
-`inventory_transactions` and `labor_cost_entries` can be read only by an organization administrator or an area
-manager with an active grant to the site (`private.can_view_site_finance`) and inserted only by an organization
-administrator (`private.can_edit_site_finance`); site supervisors and operations managers have no finance ledger access.
+`inventory_transactions` can be read by an organization administrator or an Area Manager with an active
+site grant (`private.can_view_site_finance`). Individual `labor_cost_entries` are Director-only; an Area Manager
+receives permitted aggregate accepted labour through `finance_reconciliations`, not worker-level ledger rows.
+Both ledgers are inserted only by an organization administrator (`private.can_edit_site_finance`); site
+supervisors and operations managers have no finance ledger access.
 Since issue #48 (migration `20260922034200`), Directors also hold `update, delete` on both ledgers — matching the
 `update`/`delete` RLS policies that administrators already had. A `before update or delete` trigger
 (`private.log_finance_ledger_change`) rejects any update that reassigns `organization_id`, `site_id` or `id`, and
