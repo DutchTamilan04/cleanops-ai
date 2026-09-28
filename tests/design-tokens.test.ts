@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
-// #178: globals.css uses UX system V2 tokens only (docs/design/UX_SYSTEM_V2.md §1).
+// #178/#180: globals.css uses UX system V2 tokens, type scale and breakpoints only (docs/design/UX_SYSTEM_V2.md §1).
 const css = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
 const rootBlock = css.match(/:root\s*\{[\s\S]*?\n\}/)?.[0] ?? "";
 const outsideRoot = css.replace(rootBlock, "");
@@ -31,5 +31,16 @@ describe("design tokens in globals.css", () => {
       "--surface", "--text", "--muted", "--border", "--focus", "--radius", "--shadow"];
     const found = legacy.filter((name) => new RegExp(`${name}(?![\\w-])`).test(css));
     expect(found).toEqual([]);
+  });
+
+  it("sets every font size from the type scale", () => {
+    const sizes = [...css.matchAll(/font-size:\s*([^;}]+)/g)].map((match) => match[1].trim());
+    const offScale = sizes.filter((value) => !/^var\(--text-[a-z-]+\)$/.test(value) && value !== "inherit");
+    expect(offScale).toEqual([]);
+  });
+
+  it("uses only the three layout breakpoints", () => {
+    const widths = new Set([...css.matchAll(/@media[^{]*max-width:\s*(\d+)px/g)].map((match) => Number(match[1])));
+    expect([...widths].filter((width) => ![640, 839, 1199].includes(width))).toEqual([]);
   });
 });

@@ -66,7 +66,7 @@ Faces: **Poppins** (Tornado's web display face) for page titles, KPI figures and
 | `caption` | 13/18 | 500 | Jakarta | Help text, footnotes; smallest reading size |
 | `badge` / `overline` | 12/16 | 700 (+0.06em uppercase for overline) | Jakarta | Badges; nav group labels and table headers |
 
-This replaces about 40 distinct font sizes in `globals.css` (0.6rem up to `clamp(…, 4.5rem)`) with ten styles.
+This replaces about 40 distinct font sizes in `globals.css` (0.6rem up to `clamp(…, 4.5rem)`) with ten styles. Implemented in #180 as `--text-kpi-hero`, `--text-page-title`, `--text-kpi-lg`, `--text-kpi-md`, `--text-section-title`, `--text-body`, `--text-label`, `--text-caption` and `--text-badge` (phone values set in the 640px query); every `font-size` in `globals.css` uses one, and media queries use only 640, 839 and 1199px. `tests/design-tokens.test.ts` enforces both.
 
 ### Spacing, radius, elevation, layout
 
