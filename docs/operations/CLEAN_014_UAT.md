@@ -152,6 +152,8 @@ verified at zero after cleanup.
 
 The hosted replay injected normalized synthetic rows through the service client.
 It did not exercise signed HTTP ingress, provider media or real WhatsApp/Make
-delivery. An automatic recovery cron call had not appeared in production runtime
-logs by 03:09 UTC. [Issue #27's evidence comment](https://github.com/niru2015/cleanops-ai/issues/27#issuecomment-5882843601)
-tracks these remaining acceptance items.
+delivery. At 03:16:28 UTC, Vercel runtime logs showed
+`GET /api/internal/integrations/worker` returning 200 on the same production
+deployment; no manual call was made in that window, so this is consistent with
+the scheduled recovery run. [Issue #27's evidence comment](https://github.com/niru2015/cleanops-ai/issues/27#issuecomment-5882843601)
+tracks the remaining signed transport proof.
