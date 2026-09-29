@@ -251,12 +251,14 @@ it repeatedly. Failed media remains visible as missing/quarantined evidence and 
 `npm run worker:whatsapp -- --retry-evidence <evidence-id>`. Five failed sends
 enter the monitored failed queue. Provider and database retries preserve the same logical record.
 
-The protected **GET** variant drains up to five inbound jobs only. It accepts a server-only
+After a Make callback is durably accepted with `202`, the route schedules the same bounded
+inbound-only drain in a background callback. A failed callback leaves the leased job for
+recovery. The protected **GET** variant drains up to five inbound jobs only. It accepts a server-only
 `CRON_SECRET` or `WHATSAPP_WORKER_TOKEN` of at least 32 characters and never sends an
 outbound reply. It can process Make-relayed events when Make is enabled and the server has
 `WHATSAPP_ACCESS_TOKEN` and a pinned `WHATSAPP_GRAPH_VERSION`, even when the raw Meta
-webhook is disabled. `vercel.json` schedules daily recovery at 03:05 UTC; this fallback
-does not guarantee immediate processing. The **POST** variant retains its existing
+webhook is disabled. `vercel.json` schedules daily recovery at 03:05 UTC; the immediate
+callback is best effort and does not guarantee completion. The **POST** variant retains its existing
 inbound-plus-outbound behavior and separate token requirement. Keep the raw Meta webhook
 disabled until its app secret, verification token and subscription are configured and tested.
 
