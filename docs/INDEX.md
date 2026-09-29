@@ -14,7 +14,7 @@ Paths below are relative to `docs/`. Follow linked security/integration details 
 | Table/field business meaning | [DATA_DICTIONARY](DATA_DICTIONARY.md) | Current implemented data dictionary |
 | Page/query/write mapping | [DATA_MAPPING](DATA_MAPPING.md) | UI/module to tables, columns, RPCs and transformations |
 | End-to-end process flow | [PROCESS_FLOWS](PROCESS_FLOWS.md) | Multi-step persistence, state transitions and human gates |
-| Message / media ingestion | [WHATSAPP](integrations/WHATSAPP.md), [DOMAIN](DOMAIN.md), [SECURITY](SECURITY.md) | Durable ingestion contract |
+| Message / media ingestion | [WHATSAPP](integrations/WHATSAPP.md), [CLEAN_024_PROVIDER_UAT](operations/CLEAN_024_PROVIDER_UAT.md), [DOMAIN](DOMAIN.md), [SECURITY](SECURITY.md) | Durable ingestion contract and live phone acceptance |
 | Intake operator acceptance | [CLEAN_014_UAT](operations/CLEAN_014_UAT.md), [EVENT_ADAPTER_RUNBOOK](operations/EVENT_ADAPTER_RUNBOOK.md) | Source-to-review flow, test actions, expected results and recovery |
 | AI / evaluation | [AI](AI.md), [OPENAI](integrations/OPENAI.md) | Suggestions, budgets, fallback |
 | Demo / UI | [DEMO](DEMO.md), [GATE_A_FINANCE_TRAINING](demo/GATE_A_FINANCE_TRAINING.md), [GATE_A_FINANCE_PROCESS_FLOWS](demo/GATE_A_FINANCE_PROCESS_FLOWS.md), [DATA_FACTORY](demo/DATA_FACTORY.md), [TORNADO_FINANCE_REHEARSAL](demo/TORNADO_FINANCE_REHEARSAL.md), [FINANCE_UAT](demo/FINANCE_UAT.md), [GATE_A_EXECUTION](demo/GATE_A_EXECUTION.md), [DOMAIN](DOMAIN.md) | Synthetic scenario, screenshot-led presenter training, implemented finance process flows, generator, UAT and release evidence |

@@ -24,3 +24,36 @@ export function getWhatsAppConfig(environment: Record<string, string | undefined
     workerId: parsed.data.WHATSAPP_WORKER_ID,
   };
 }
+
+const inboundWorkerSchema = z.object({
+  WHATSAPP_CLOUD_ENABLED: z.enum(["true", "false"]).default("false"),
+  CLEANOPS_MAKE_WHATSAPP_ENABLED: z.enum(["true", "false"]).default("false"),
+  WHATSAPP_ACCESS_TOKEN: z.string().optional(),
+  WHATSAPP_GRAPH_VERSION: z.string().optional(),
+  WHATSAPP_WORKER_ID: z.string().min(1).max(120).default("cleanops-whatsapp-worker"),
+  CRON_SECRET: z.string().optional(),
+  WHATSAPP_WORKER_TOKEN: z.string().optional(),
+});
+
+/** Inbound processing can serve the Make relay without enabling the raw Meta webhook. */
+export function getWhatsAppInboundWorkerConfig(
+  environment: Record<string, string | undefined> = process.env,
+) {
+  const parsed = inboundWorkerSchema.safeParse(environment);
+  if (!parsed.success) throw new Error("WhatsApp inbound worker is not configured.");
+  const values = parsed.data;
+  const enabled = values.WHATSAPP_CLOUD_ENABLED === "true" ||
+    values.CLEANOPS_MAKE_WHATSAPP_ENABLED === "true";
+  if (enabled && (
+    !values.WHATSAPP_ACCESS_TOKEN || values.WHATSAPP_ACCESS_TOKEN.length < 24 ||
+    !values.WHATSAPP_GRAPH_VERSION || !/^v\d+\.\d+$/.test(values.WHATSAPP_GRAPH_VERSION)
+  )) throw new Error("WhatsApp inbound worker is not configured.");
+  return {
+    enabled,
+    accessToken: values.WHATSAPP_ACCESS_TOKEN ?? "",
+    graphVersion: values.WHATSAPP_GRAPH_VERSION ?? "",
+    workerId: values.WHATSAPP_WORKER_ID,
+    authTokens: [values.CRON_SECRET ?? "", values.WHATSAPP_WORKER_TOKEN ?? ""]
+      .filter((token) => token.length >= 32),
+  };
+}
