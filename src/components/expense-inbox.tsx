@@ -47,7 +47,7 @@ export function ExpenseInbox({intakes,documents,claims,sites}:{intakes:ExpenseIn
       const total=field(item,"total",hint(proposal.total));
       const siteId=field(item,"siteId",item.site_id??"");
       return <article className="reviewCard" key={item.id} id={item.id}>
-        <div className="expenseInboxHeading"><h3>{item.source_kind==="whatsapp"?"WhatsApp":"App"} candidate</h3><StatusBadge tone={item.review_state==="posted"?"success":item.review_state==="rejected"?"danger":item.review_state==="resolved"?"info":"pending"}>{item.review_state.replaceAll("_"," ")}</StatusBadge></div>
+        <div className="expenseInboxHeading"><h3>{item.source_kind === "whatsapp" ? "WhatsApp" : item.source_kind === "adapter" ? "Integration" : "App"} candidate</h3><StatusBadge tone={item.review_state==="posted"?"success":item.review_state==="rejected"?"danger":item.review_state==="resolved"?"info":"pending"}>{item.review_state.replaceAll("_"," ")}</StatusBadge></div>
         <section className="expenseInboxGroup" aria-label="Source evidence">
           <h4>Source evidence</h4>
           <p>Source text (untrusted): <span>{item.source_text}</span></p>

@@ -154,6 +154,9 @@ external_message_contexts resolution_status=confirmed
 ```
 
 Receiving-account site is a deterministic suggestion; the confirming Director/Area Manager sets the finer context.
+When an adapter source includes a forwarder, the site queue displays it separately from
+the original sender. Signed synthetic adapter events are visibly marked in both
+the Director and site queues. Neither marker changes the human confirmation gate.
 
 ## 6. Evidence quality review and correction
 
@@ -394,7 +397,7 @@ The review screen shows the source span and machine proposal separately. Accept/
 
 ## 18. Finance Inbox to approved direct cost (CLEAN-035)
 
-1. An assigned-site app user submits text through `submit_app_finance_intake`, or durable normalized WhatsApp ingress creates a keyword-classified candidate. Both retain the original source and have zero cost effect. Evidence-linked media is recorded separately.
+1. An assigned-site app user submits text through `submit_app_finance_intake`, or durable normalized WhatsApp/signed-adapter ingress creates a candidate for expense/receipt terms. Generic adapter candidates retain an `adapter` source label; plain supply requests and equipment reports do not become expense drafts. All retain the original source and have zero cost effect. Evidence-linked media is recorded separately.
 2. An app receipt is uploaded directly into the private bucket under a scoped ticket. Finalization reloads and verifies bytes/MIME/size/hash. A source document remains linked to its intake; failed or missing media stays visible for review.
 3. Deterministic text/OCR parsing stores a validated proposal with provenance. It never changes canonical claim values. A Director or granted Area Manager checks source, site, category, vendor, date, payment method, amount and allocation, then calls the resolution RPC. Corrections/rejection are audited.
 4. Only the Director posts a submitted claim. The approval transaction locks the claim, verifies the receipt and totals, serializes by organization plus receipt hash, and creates one immutable posting per balanced allocation. A retry returns the posted claim; another source with the same receipt hash is rejected.

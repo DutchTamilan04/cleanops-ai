@@ -21,6 +21,12 @@ test("Director assigns or rejects unassigned intake while Area Manager cannot se
   });
   if (event.error) throw event.error;
   try {
+    const provenance = await admin.from("integration_adapter_event_provenance").insert({
+      integration_event_id: eventId, organization_id: orgId,
+      source: "whatsapp", source_event_id: `org-inbox-${suffix}`,
+      forwarded_by: "Synthetic supervisor forwarder", synthetic: true,
+    });
+    if (provenance.error) throw provenance.error;
     const messages = await admin.from("external_messages").insert([
       { id: assignedId, organization_id: orgId, integration_account_id: accountId,
         integration_event_id: eventId, external_message_id: `unassigned-a-${suffix}`,
@@ -46,6 +52,8 @@ test("Director assigns or rejects unassigned intake while Area Manager cannot se
     const rejection = page.locator("article.messageQueueItem").filter({ hasText: `Synthetic unassigned rejection ${suffix}` });
     await expect(assignment).toBeVisible();
     await expect(rejection).toBeVisible();
+    await expect(assignment.getByText("Forwarded by: Synthetic supervisor forwarder", { exact: false })).toBeVisible();
+    await expect(assignment.getByText("Synthetic adapter event", { exact: false })).toBeVisible();
     const restrictedContext = await browser.newContext();
     try {
       const restricted = await restrictedContext.newPage();
@@ -60,7 +68,11 @@ test("Director assigns or rejects unassigned intake while Area Manager cannot se
     await assignment.getByRole("button", { name: "Assign casino" }).click();
     await expect(page.getByText("Casino assigned. The message still needs site context review.")).toBeVisible();
     await page.goto(`/finance?siteId=${siteId}`);
-    await expect(page.getByText(`Synthetic unassigned assignment ${suffix}`)).toBeVisible();
+    const siteMessage = page.locator("article.messageQueueItem").filter({ hasText: `Synthetic unassigned assignment ${suffix}` });
+    await expect(siteMessage).toBeVisible();
+    await expect(siteMessage.getByText("Synthetic unknown sender A")).toBeVisible();
+    await expect(siteMessage.getByText("Forwarded by: Synthetic supervisor forwarder", { exact: false })).toBeVisible();
+    await expect(siteMessage.getByText("Synthetic adapter event", { exact: false })).toBeVisible();
 
     await page.goto("/operations/messages");
     const pendingRejection = page.locator("article.messageQueueItem").filter({ hasText: `Synthetic unassigned rejection ${suffix}` });

@@ -25,10 +25,10 @@ export type MessageWorkspace = {
   zones: { id: string; name: string }[];
   tasks: { id: string; name: string; state: string }[];
   workers: { id: string; name: string }[];
-  messages: { contextId: string; siteId: string; zoneId: string | null; taskRunId: string | null; senderWorkerId: string | null; senderRole: string; resolutionStatus: string; intentKind: string; sender: string; text: string | null; occurredAt: string; media: { id: string; kind: string; mimeType: string | null; status: string; storagePath: string | null }[] }[];
+  messages: { contextId: string; siteId: string; zoneId: string | null; taskRunId: string | null; senderWorkerId: string | null; senderRole: string; resolutionStatus: string; intentKind: string; sender: string; text: string | null; occurredAt: string; forwardedBy: string | null; synthetic: boolean; media: { id: string; kind: string; mimeType: string | null; status: string; storagePath: string | null }[] }[];
 };
 
-type MessageRow = { id: string; sender_id: string; text_content: string | null; occurred_at: string };
+type MessageRow = { id: string; sender_id: string; text_content: string | null; occurred_at: string; forwarded_by: string | null; synthetic: boolean };
 
 export async function getMessageWorkspace(client: SupabaseClient, context: FinanceSiteContext): Promise<MessageWorkspace> {
   const [contexts, zones, tasks, serviceTasks, workers] = await Promise.all([
@@ -47,10 +47,10 @@ export async function getMessageWorkspace(client: SupabaseClient, context: Finan
       client.from("external_message_media").select("id,external_message_id,media_kind,mime_type,ingestion_status,storage_path").eq("organization_id", context.organizationId).in("external_message_id", messageIds),
     ]);
     if (messageResult.error || mediaResult.error) throw new Error("Message records are unavailable.");
-    const parsedMessages = z.array(z.object({ message_id: uuid, sender_id: z.string(), text_content: z.string().nullable(), occurred_at: z.string() })).safeParse(messageResult.data);
+    const parsedMessages = z.array(z.object({ message_id: uuid, sender_id: z.string(), text_content: z.string().nullable(), occurred_at: z.string(), forwarded_by: z.string().nullable(), synthetic: z.boolean() })).safeParse(messageResult.data);
     const parsedMedia = z.array(mediaSchema).safeParse(mediaResult.data);
     if (!parsedMessages.success || !parsedMedia.success) throw new Error("Message records did not match their contract.");
-    messages = parsedMessages.data.map((entry) => ({ id: entry.message_id, sender_id: entry.sender_id, text_content: entry.text_content, occurred_at: entry.occurred_at }));
+    messages = parsedMessages.data.map((entry) => ({ id: entry.message_id, sender_id: entry.sender_id, text_content: entry.text_content, occurred_at: entry.occurred_at, forwarded_by: entry.forwarded_by, synthetic: entry.synthetic }));
     media = parsedMedia.data;
   }
   const messageById = new Map(messages.map((message) => [message.id, message]));
@@ -66,7 +66,7 @@ export async function getMessageWorkspace(client: SupabaseClient, context: Finan
       if (!message || !context.site_id) return [];
       return [{
         contextId: context.id, siteId: context.site_id, zoneId: context.zone_id, taskRunId: context.task_run_id, senderWorkerId: context.sender_worker_id,
-        senderRole: context.sender_role, resolutionStatus: context.resolution_status, intentKind: context.intent_kind, sender: message.sender_id, text: message.text_content, occurredAt: message.occurred_at,
+        senderRole: context.sender_role, resolutionStatus: context.resolution_status, intentKind: context.intent_kind, sender: message.sender_id, text: message.text_content, occurredAt: message.occurred_at, forwardedBy: message.forwarded_by, synthetic: message.synthetic,
         media: (mediaByMessage.get(message.id) ?? []).map((item) => ({ id: item.id, kind: item.media_kind, mimeType: item.mime_type, status: item.ingestion_status, storagePath: item.storage_path })),
       }];
     }),

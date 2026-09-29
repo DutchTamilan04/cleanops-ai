@@ -9,6 +9,14 @@ insert into public.integration_webhook_events (
   'c0000000-0000-4000-8000-000000000001',
   'org-unassigned-test', '{}'::jsonb, repeat('a', 64)
 );
+insert into public.integration_adapter_event_provenance (
+  integration_event_id, organization_id, source, source_event_id,
+  forwarded_by, synthetic
+) values (
+  'd1630000-0000-4000-8000-000000000001',
+  '10000000-0000-4000-8000-000000000001',
+  'whatsapp', 'org-unassigned-test', 'synthetic-supervisor', true
+);
 insert into public.external_messages (
   id, organization_id, integration_account_id, integration_event_id,
   external_message_id, external_thread_id, sender_id, occurred_at,
@@ -80,6 +88,14 @@ begin
       '10000000-0000-4000-8000-000000000001')) < 2 then
     raise exception 'Director cannot see both unassigned messages';
   end if;
+  if not exists (
+    select 1 from public.list_org_unassigned_messages(
+      '10000000-0000-4000-8000-000000000001')
+    where context_id = v_first and sender_id = 'unknown-worker'
+      and forwarded_by = 'synthetic-supervisor' and synthetic
+  ) then
+    raise exception 'organization review lost original sender or forwarding provenance';
+  end if;
   begin
     perform public.resolve_org_unassigned_message(
       '10000000-0000-4000-8000-000000000001', v_first,
@@ -96,6 +112,15 @@ begin
   if (select count(*) from public.list_site_external_messages(
       '40000000-0000-4000-8000-000000000001', 25)) < 1 then
     raise exception 'assigned message did not enter site review';
+  end if;
+  if not exists (
+    select 1 from public.list_site_external_messages(
+      '40000000-0000-4000-8000-000000000001', 25)
+    where message_id = 'e1630000-0000-4000-8000-000000000001'
+      and sender_id = 'unknown-worker'
+      and forwarded_by = 'synthetic-supervisor' and synthetic
+  ) then
+    raise exception 'site review lost original sender or forwarding provenance';
   end if;
   if (select resolution_status from public.external_message_contexts where id = v_first) <> 'unresolved' then
     raise exception 'site assignment prematurely confirmed task context';
@@ -117,6 +142,14 @@ begin
     '10000000-0000-4000-8000-000000000001')
     where context_id = v_second) then
     raise exception 'rejected message remained in the active inbox'; end if;
+end $$;
+
+select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000006', true);
+do $$ begin
+  perform * from public.list_site_external_messages(
+    '40000000-0000-4000-8000-000000000001', 25);
+  raise exception 'other organization Director read site message provenance';
+exception when insufficient_privilege then null;
 end $$;
 
 reset role;

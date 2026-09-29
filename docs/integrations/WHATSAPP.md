@@ -29,8 +29,9 @@ event, account, first message/media and first delivery-status fields individuall
 preserves message quotes, newlines and ampersands. The official trigger emits one flattened event
 bundle per observed callback in the verified scenario.
 
-Stop on HTTP errors so failed persistence remains visible. Attach a bounded `Break` error handler to
-the HTTP module so transient failures enter Make's incomplete-execution queue for retry rather than
+Stop on HTTP errors so failed persistence remains visible. Attach a bounded
+[`Retry` error handler](https://help.make.com/retry-error-handler) to the HTTP module and enable
+incomplete executions so transient failures can be retried rather than
 silently dropping the event. Store only the scoped adapter credential in Make; never store a
 Supabase service/secret key there.
 
@@ -167,8 +168,14 @@ not guarantee prompt processing when the immediate callback fails; see the
 recovery and the hosted verification still required.
 
 After normalization, the existing context and finance candidate triggers run. The review
-queue shows a deterministic suggested intent. It is a hint only: Director/Area Manager
-confirmation and the existing domain approval gates still control any effect.
+queue shows a deterministic suggested intent. A plain supply request or equipment
+repair report does not become a finance draft; expense/receipt terms do. A
+non-WhatsApp signed adapter finance draft stores `source_kind=adapter` and shows
+“Integration candidate” in the Finance Inbox. Forwarder and original sender remain separate through Director assignment
+and site review, and signed synthetic adapter events are visibly marked. These
+are review hints and source labels only: Director/Area Manager confirmation and
+the existing domain approval gates still control any effect. See the
+[CLEAN-014 acceptance script](../operations/CLEAN_014_UAT.md) for operator tests.
 
 ## Ingress and normalized contract
 
