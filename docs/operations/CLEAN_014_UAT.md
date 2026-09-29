@@ -136,3 +136,22 @@ reliability checks.
 For #37, attach the separate authorized phone-to-private-hash proof and the
 direct Meta versus Make decision. Record setup, failures, latency and recovery;
 do not mark the provider path live-verified from a mock or code review.
+
+## Dated execution record: 2026-09-29 UTC
+
+PR [#191](https://github.com/niru2015/cleanops-ai/pull/191) merged as
+`61b64d0`; application, database, Playwright and Vercel checks passed. Hosted
+migration `20260929021011` is recorded in the Supabase ledger, and production
+serves the matching commit. A scoped synthetic browser replay in the legacy
+demo organization passed six checks: Director provenance, site provenance after
+assignment, Integration receipt label, supply request excluded from Finance,
+one pending draft, and no automatic claim. Three screenshots and `result.json`
+are at `artifacts/tornado-demo/issue27-hosted-20260929-44bc167b/` in the
+operator workspace. Temporary account, event, message and draft counts were
+verified at zero after cleanup.
+
+The hosted replay injected normalized synthetic rows through the service client.
+It did not exercise signed HTTP ingress, provider media or real WhatsApp/Make
+delivery. An automatic recovery cron call had not appeared in production runtime
+logs by 03:09 UTC. [Issue #27's evidence comment](https://github.com/niru2015/cleanops-ai/issues/27#issuecomment-5882843601)
+tracks these remaining acceptance items.
