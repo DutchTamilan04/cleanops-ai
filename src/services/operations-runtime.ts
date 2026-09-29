@@ -12,6 +12,14 @@ export const DEMO_SHIFT_ID = "90000000-0000-4000-8000-000000000001";
 export const DEMO_MOBILE_TASK_ID = "81000000-0000-4000-8000-000000000004";
 export const DEMO_WORKER_ID = "60000000-0000-4000-8000-000000000001";
 
+/**
+ * #186: the fixed live-operations walkthrough exists only in the demo organization. A Director of any
+ * other organization (for example a generated scenario) must not be sent to it.
+ */
+export function hasOperationsFixture(access: { organizationId: string; sites: { id: string }[] }) {
+  return access.organizationId === DEMO_ORGANIZATION_ID && access.sites.some((site) => site.id === DEMO_SITE_ID);
+}
+
 export type OperationsRuntime = {
   accessClient: SupabaseClient;
   writeClient: SupabaseClient;
