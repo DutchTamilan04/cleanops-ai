@@ -13,6 +13,7 @@ const itemSchema = z.object({
   resolution_status: z.string(),
   media_count: z.number(),
   forwarded_by: z.string().nullable(),
+  synthetic: z.boolean(),
 });
 
 export type UnassignedMessage = z.infer<typeof itemSchema>;

@@ -248,8 +248,9 @@ site-less messages in `/operations/messages` before they can enter this queue.
 
 `list_org_unassigned_messages` calls a private, membership-checked read and returns only
 site-less context ID, untrusted sender/text, occurrence time, suggested intent, media count,
-forwarder reference and resolution state. Raw `external_messages` and provenance tables retain
-no direct authenticated grant. Only a current organization Director can read the queue; a
+forwarder reference, synthetic adapter marker and resolution state. Raw
+`external_messages` and provenance tables retain no direct authenticated grant.
+Only a current organization Director can read the queue; a
 site-scoped manager receives no rows or mutation authority.
 
 `performUnassignedMessageResolution` rechecks Director role and site access, then calls
@@ -264,7 +265,7 @@ its original source and audit record. A stale second decision fails instead of o
 | UI | Source | Rule |
 |---|---|---|
 | Context rows | `external_message_contexts` | Org/site scoped. |
-| Sender/text/time | `list_site_external_messages` RPC over `external_messages` | RPC checks actor/site authority; browser has no raw-table grant. |
+| Sender/text/time and adapter provenance | `list_site_external_messages` RPC over `external_messages` and `integration_adapter_event_provenance` | RPC checks actor/site authority; returns separate original sender, optional forwarder and synthetic marker; browser has no raw-table grant. |
 | Attachment metadata | `external_message_media` | By message IDs. |
 | Area choices | `site_zones` | Site scoped. |
 | Task choices | `task_runs` + `service_tasks` | Site scoped. |
@@ -323,7 +324,7 @@ Client view does not expose raw evidence, private worker statements, raw message
 
 | UI/action | Source and effect |
 |---|---|
-| Assigned-site submission | `submit_app_finance_intake` writes `finance_intake_items` with authenticated submitter. The normalized WhatsApp `external_messages` trigger writes the other intake source. |
+| Assigned-site submission | `submit_app_finance_intake` writes `finance_intake_items` with authenticated submitter. The normalized `external_messages` trigger creates only expense/receipt candidates; it marks a non-WhatsApp signed adapter source as `adapter` and does not treat a plain supply request as an expense. |
 | Receipt upload | A short scoped upload ticket permits direct private Storage upload. Server finalization reloads bytes, checks MIME signature, size and SHA-256, then marks `expense_documents` ready. |
 | Candidate/source | `src/integrations/finance/supabase-expenses.ts` reads role/site-scoped intake, document and claim rows. A signed download URL is issued only after the same read authorization. |
 | Suggestion | `suggestExpense` parses source text and bounded receipt text/OCR deterministically; validated proposed fields and extraction provenance are stored separately from the claim. |

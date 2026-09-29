@@ -34,6 +34,7 @@ export function UnassignedMessageInbox({ messages, sites }: {
           <p>{message.text_content ?? "Media-only message"}</p>
           <p>Suggested intent: {message.intent_kind.replaceAll("_", " ")} · {message.media_count} media item(s)</p>
           {message.forwarded_by ? <p>Forwarded by: {message.forwarded_by}. Original sender remains the source reference above.</p> : null}
+          {message.synthetic ? <p>Synthetic adapter event — demonstration only.</p> : null}
         </div>
         <form className="messageResolutionForm" onSubmit={(event) => {
           event.preventDefault();

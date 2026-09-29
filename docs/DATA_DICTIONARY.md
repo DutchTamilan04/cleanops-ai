@@ -280,7 +280,7 @@ Business rules that live in the database. "Browser" means callable by `authentic
 | `record_equipment_report` | browser | Equipment issue intake in `reported` state. |
 | `prepare_client_service_report`, `release_client_service_report` | browser | Build the draft SLA snapshot; explicit release. |
 | `get_released_client_service_report` | browser | Redacted client view for an active client_viewer with a site grant. |
-| `list_site_external_messages` | browser | Site-authorized raw message text for review (no table grant on `external_messages`). |
+| `list_site_external_messages` | browser | Site-authorized message text, original sender, optional forwarder and synthetic adapter marker for review (no direct table grant). |
 | `accept_mock_ingress_event`, `accept_whatsapp_ingress_event` | service | Atomically persist envelope + job before acknowledgement. |
 | `claim_processing_job`, `complete_processing_job`, `fail_processing_job`, `retry_failed_processing_job` | service | Leased job queue. |
 | `begin_evidence_ingestion`, `finalize_evidence_ingestion`, `mark_evidence_ingestion_problem`, `list_staged_evidence` | service | Evidence staging and verification (mock path). |
@@ -358,7 +358,7 @@ Migration `20260923112308_clean_035_finance_intake_expenses.sql` owns the privat
 
 | Table | Meaning |
 |---|---|
-| `finance_intake_items` | Durable WhatsApp/app candidate, original source pointer/text, machine proposal, site/project hint and human review state. A candidate has no cost effect. |
+| `finance_intake_items` | Durable WhatsApp, signed non-WhatsApp adapter or app candidate (`source_kind`), original source pointer/text, machine proposal, site/project hint and human review state. A candidate has no cost effect. |
 | `expense_documents` | Staged or byte-verified receipt metadata and extraction provenance; ready receipts have SHA-256, size and verification time. Originals stay in private Storage. |
 | `expense_claims` | Human-reviewed category, vendor, date, payment method, currency, total, context and revision. `receipt_sha256` is unique among posted/reconciled claims per organization. Equipment purchases carry `asset_review_required`; employee-paid claims carry separate reimbursement status. |
 | `expense_items` | One classified direct-cost line for the reviewed claim; further line detail can be added by a later owner. |
@@ -366,7 +366,7 @@ Migration `20260923112308_clean_035_finance_intake_expenses.sql` owns the privat
 | `expense_postings` | Immutable approved cost per allocation with source claim/revision and approving Director; approval retry adds no row. |
 | `expense_audit_events` | Immutable submission review, rejection and posting history with actor and reason. |
 
-`submit_app_finance_intake` accepts an assigned-site cleaner/supervisor/Area Manager message; an `external_messages` trigger creates a WhatsApp candidate for expense terms. `resolve_finance_intake` and `reject_finance_intake` require a Director or granted Area Manager; `approve_finance_expense` requires a Director, a verified receipt, balanced allocations and resolved context. All three use server-side role/site checks; browser table access is read-only and role-scoped. CLEAN-035 postings are operational direct costs, not CLEAN-020 accounting imports or payroll/payment records.
+`submit_app_finance_intake` accepts an assigned-site cleaner/supervisor/Area Manager message; an `external_messages` trigger creates a linked WhatsApp or generic-adapter candidate for expense/receipt terms. A plain supply request or equipment repair report does not create a finance candidate. `resolve_finance_intake` and `reject_finance_intake` require a Director or granted Area Manager; `approve_finance_expense` requires a Director, a verified receipt, balanced allocations and resolved context. All three use server-side role/site checks; browser table access is read-only and role-scoped. CLEAN-035 postings are operational direct costs, not CLEAN-020 accounting imports or payroll/payment records.
 
 ## Agent guidance
 

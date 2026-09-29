@@ -32,6 +32,8 @@ export function MessageContextQueue({ workspace }: { workspace: MessageWorkspace
             <div><strong>{message.sender}</strong><time dateTime={message.occurredAt}>{formatUtcTimestamp(message.occurredAt)}</time></div>
             <p>{message.text ?? "Media-only message"}</p>
             <p>Suggested intent: {message.intentKind.replaceAll("_", " ")} · confirm context before any action.</p>
+            {message.forwardedBy ? <p>Forwarded by: {message.forwardedBy}. Verify the original sender above separately.</p> : null}
+            {message.synthetic ? <p>Synthetic adapter event — demonstration only.</p> : null}
             {message.media.length ? <div className="messageMediaList">{message.media.map((media) => <span key={media.id}>{media.kind} · {media.status}{media.mimeType ? ` · ${media.mimeType}` : ""}</span>)}</div> : null}
           </div>
           <form className="messageResolutionForm" onSubmit={(event) => {
