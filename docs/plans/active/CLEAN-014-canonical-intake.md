@@ -23,10 +23,14 @@ non-WhatsApp receipt produced one pending Integration draft; a plain supply
 request produced no finance draft or expense claim. All temporary rows were
 removed. See the dated result in [operator acceptance](../../operations/CLEAN_014_UAT.md).
 
+At 03:16:28 UTC on 2026-09-29, Vercel production runtime logs showed a
+`GET /api/internal/integrations/worker` response of 200 on the same main
+deployment. No manual worker call was made in that window; this is consistent
+with the scheduled recovery run.
+
 Still to verify for parent #27: a valid signed HTTP `202` and completed job on
-the hosted adapter, and an observed automatic production recovery cron
-invocation. The hosted replay inserted scoped synthetic normalized rows and did
-not prove signed ingress. The generic intent/finance handoff matrix passed in
-local PostgreSQL and CI. Real Meta/Make and group capability belong to #37 and
-need separate authorized sandbox evidence. Keep #27 open until its remaining
-acceptance evidence is recorded.
+the hosted adapter. The hosted reviewer replay inserted scoped synthetic
+normalized rows and did not prove signed ingress. The generic intent/finance
+handoff matrix passed in local PostgreSQL and CI. Real Meta/Make and group
+capability belong to #37 and need separate authorized sandbox evidence. Keep
+#27 open until its remaining acceptance evidence is recorded.
