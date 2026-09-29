@@ -1,0 +1,80 @@
+{
+  "startedAt": "2026-09-29T04:16:31.754Z",
+  "tag": "issue27-uat-f31eaf2e",
+  "checks": {
+    "localMainServerConnectedToHostedDb": "pass",
+    "simulatorDurable202": "pass",
+    "simulatorNormalized": "pass",
+    "appFormSubmitted": "pass",
+    "unsignedDenied": "pass",
+    "forgedDenied": "pass",
+    "staleDenied": "pass",
+    "malformedDenied": "pass",
+    "crossAccountDenied": "pass",
+    "adapterDurable202": "pass",
+    "adapterNormalized": "pass",
+    "nonceReplayDenied": "pass",
+    "concurrentDuplicateDedupe": "pass",
+    "changedMessageIdentityDenied": "pass",
+    "missingMediaTextAccepted": "pass",
+    "privateMediaTicketPrepared": "pass",
+    "missingMediaVisible": "pass",
+    "missingMediaRetryPrepared": "pass",
+    "expiredLeaseRecovered": "pass",
+    "recoveredJobSucceededOnce": "pass",
+    "sameScenarioThreePendingDrafts": "pass",
+    "noAutomaticExpenseClaim": "pass",
+    "twoTransportMessagesRetained": "pass",
+    "directorSeesThreeSources": "pass"
+  },
+  "observations": {
+    "mediaJob": {
+      "status": "succeeded",
+      "jobId": "1c7c8b26-7806-4598-aca7-23f8cd19e106"
+    },
+    "mediaUploads": [
+      {
+        "job_id": "1c7c8b26-7806-4598-aca7-23f8cd19e106",
+        "media_external_id": "issue27-uat-f31eaf2e-missing-image",
+        "evidence_id": "04814d3c-b337-4271-b19d-d106cea5bf13"
+      }
+    ],
+    "mediaEvidence": [
+      {
+        "id": "04814d3c-b337-4271-b19d-d106cea5bf13",
+        "media_external_id": "issue27-uat-f31eaf2e-missing-image",
+        "processing_status": "staged"
+      }
+    ],
+    "mediaPrepareResponse": {
+      "status": 200,
+      "error": null
+    },
+    "draftIds": [
+      "19ee2263-8e03-468c-b462-1a88418395fd",
+      "073ceca5-0b29-4833-bbd0-661410270c9c",
+      "7f68a8fa-08e3-40dc-b93e-49ebe69901e9"
+    ],
+    "simulatorJobId": "797e5d26-8ff7-4be7-ab9c-0572f3e4f492",
+    "adapterJobId": "ee2bb460-f8cc-4114-8b38-3a91dea2b44f",
+    "recoveryJobId": "48ad9b6c-1018-4b93-ae9a-629aac038c6c",
+    "sourceKinds": [
+      "adapter",
+      "app",
+      "whatsapp"
+    ],
+    "localRouteWithHostedDatabase": true
+  },
+  "cleanup": {
+    "counts": {
+      "accounts": 0,
+      "credentials": 0,
+      "messages": 0,
+      "drafts": 0,
+      "memberships": 0
+    },
+    "complete": true
+  },
+  "errors": [],
+  "finishedAt": "2026-09-29T04:16:52.248Z"
+}
