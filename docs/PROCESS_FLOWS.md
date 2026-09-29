@@ -90,10 +90,11 @@ Meta Cloud API or Make transport
   -> linked operational evidence OR supervisor queue
 ```
 
-For Make-relayed messages, `GET /api/internal/whatsapp/worker` is an inbound-only,
-server-authenticated recovery drain. It claims at most five jobs or starts no new work
-after 20 seconds. The second production cron invokes it daily at 03:05 UTC; a manual
-authorized GET can drain accepted jobs sooner. The route requires the server-side Meta
+For Make-relayed messages, the Make route schedules a best-effort inbound drain after its
+durable `202` response. `GET /api/internal/whatsapp/worker` is an inbound-only,
+server-authenticated recovery drain. Both paths claim at most five jobs or start no new
+work after 20 seconds. The second production cron invokes recovery daily at 03:05 UTC;
+a manual authorized GET can drain accepted jobs sooner. Processing requires the server-side Meta
 media access token and works while the raw Meta webhook stays disabled. Its GET path
 never claims `whatsapp_outbox`; the existing POST path still handles both inbound and
 outbound work under the separate worker token. See [CLEAN-024 provider UAT](operations/CLEAN_024_PROVIDER_UAT.md)
