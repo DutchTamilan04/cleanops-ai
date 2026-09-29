@@ -28,9 +28,18 @@ At 03:16:28 UTC on 2026-09-29, Vercel production runtime logs showed a
 deployment. No manual worker call was made in that window; this is consistent
 with the scheduled recovery run.
 
-Still to verify for parent #27: a valid signed HTTP `202` and completed job on
-the hosted adapter. The hosted reviewer replay inserted scoped synthetic
-normalized rows and did not prove signed ingress. The generic intent/finance
-handoff matrix passed in local PostgreSQL and CI. Real Meta/Make and group
-capability belong to #37 and need separate authorized sandbox evidence. Keep
-#27 open until its remaining acceptance evidence is recorded.
+A controlled preview deployment using the hosted database and a temporary
+branch-scoped adapter credential passed signed HTTP acceptance: forged requests
+were rejected; a valid receipt returned durable `202` and a completed job;
+identical replay yielded one pending finance draft and no claim; a signed image
+job completed with private byte/hash verification. Test rows, credential,
+preview configuration and deployment were removed. See the dated result in
+[operator acceptance](../../operations/CLEAN_014_UAT.md). This does not prove
+the production signed route or real Meta/Make delivery.
+
+Still to verify for parent #27: record the same-logical-event comparison across
+simulator, app form and adapter, plus hosted negative/recovery cases before
+closure. The generic intent/finance handoff matrix passed in local PostgreSQL
+and CI. Real Meta/Make and group capability belong to #37 and need separate
+authorized sandbox evidence. Keep #27 open until its remaining acceptance
+evidence is recorded.
