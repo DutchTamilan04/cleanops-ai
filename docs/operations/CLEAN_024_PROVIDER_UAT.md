@@ -1,0 +1,109 @@
+# CLEAN-024: real WhatsApp/Make provider acceptance
+
+This is the live-phone runbook for [issue #37](https://github.com/niru2015/cleanops-ai/issues/37).
+It distinguishes a Make transport acknowledgment, durable CleanOps acceptance, completed
+normalization, private media evidence, and operator review. Only the first two were proved
+by the 28 September 2026 phone test. Test messages must be synthetic and must not identify
+real staff or patrons. Do not paste provider tokens, webhook secrets, or media URLs into an
+issue, screenshot, log, or this file.
+
+## Current provider topology (28 September 2026)
+
+```text
+authorized phone -> connected dedicated WhatsApp Business number (ending 0951)
+  -> Meta official event -> Make Watch Events webhook
+  -> Make HTTP v4 with scoped CleanOps bearer token
+  -> POST /api/integrations/make/whatsapp/v1
+  -> integration_webhook_events + processing_jobs (202)
+  -> protected inbound worker (new branch; not yet deployed)
+  -> external_messages + private evidence -> context/identity review
+```
+
+The SSB business portfolio owns the connected Cleanops WhatsApp Business Account and
+assigns Make as its partner. A new **CleanOps API** developer app with the WhatsApp use
+case was created in that portfolio for this UAT. It is unpublished and has no configured
+webhook or server media access token. Meta's setup screen states that unpublished apps
+receive dashboard test webhooks only, not production data. No direct Meta webhook,
+customer group access, or media download through this new app has been verified. Keep
+Make active while access to the existing business asset is resolved. Changing app
+subscriptions must not be treated as a harmless switch: verify the existing subscription
+before a cutover. `WHATSAPP_CLOUD_ENABLED` remains false until the signed raw webhook
+is ready.
+
+The Make scenario currently has a filter that sends known text/image/document/video/
+audio/sticker messages and delivery statuses to CleanOps. It was added to clear a
+previously queued unsupported event after two `400` responses had stopped the scenario.
+That event was filtered, not persisted in CleanOps. This is a **temporary UAT limitation**:
+unsupported provider events can be silently skipped by Make. Add an auditable quarantine
+or a monitored unsupported-event branch before declaring loss handling production-ready.
+Do not claim the filter proves unknown-event durability.
+
+## Observed acceptance evidence
+
+| Check | Observation | Result |
+|---|---|---|
+| Old queued synthetic deliveries | Six deliveries from 24–25 September were replayed with authorization. Three statuses and two image callbacks produced successful Make HTTP `202` runs. One unsupported event produced `400` twice and was then cleared by the temporary filter. | Partial: queue now zero; unsupported event not durable. |
+| Real phone text | The user sent a unique synthetic text to the dedicated number. Make delivery at 2026-09-29 05:16:03 UTC ran both modules, spent two Make credits and received HTTP `202`. CleanOps recorded one `make_relay` event and one pending job at 05:16:05 UTC. | Transport and durable acceptance pass; normalization pending. |
+| Worker/media | The hosted production environment lacks the server media access token and has no deployed inbound-only recovery route yet. The accepted image and text jobs remain pending. | Blocked for completed message/photo proof. |
+| Direct Meta webhook | Raw webhook is disabled/unconfigured; an unsigned probe returned `503`. | Not tested with a valid signature. |
+| Existing group ingestion | The current official trigger yielded account messages/statuses only. | No group capability proof. |
+
+`202` means the event/job was stored. It does not mean the text was normalized, the photo
+was downloaded, evidence was linked, or a cleaning task was approved. Make credits are
+usage units, not a monetary cost; capture the plan's actual price before claiming cost.
+
+## Operator phone test after worker deployment and media access
+
+1. Use an authorized phone to send one uniquely labeled **synthetic text** to the dedicated
+   number. Record send time, Make delivery ID, HTTP status and module duration. Check that
+   exactly one `make_relay` event and one job exist. Trigger one authorized worker GET if
+   immediate processing is needed; the daily cron is only recovery. Verify job `succeeded`
+   and one `external_messages` row with the same provider message ID. Confirm the message
+   appears in the correct site/Director review path, with unknown sender unresolved.
+2. Send a **synthetic cleaning photo** with an explicit `#before` or `#after` label. Record
+   the source file's SHA-256 locally and send that exact file. Verify Make `202`, worker
+   processing, private Storage object, `external_message_media` state and downloaded
+   evidence SHA-256 match. Use only a short-lived authorized signed URL in the UI; do not
+   publish the Storage path or token. Reviewer confirmation is a separate human action.
+3. Replay the same provider message ID and photo callback. Verify one normalized message,
+   one evidence object and a recorded duplicate delivery. A changed payload for the same
+   ID must fail with `logical_message_conflict` without overwriting the first record.
+4. Send late/out-of-order `#after` then `#before` records and an unknown sender. Verify the
+   unresolved queue and pairing rules rather than an inferred worker, site, or task. Test
+   mixed-site account payloads only with registered synthetic accounts; no tenant data may
+   cross. Check outbound echo/status callbacks do not create operational messages.
+5. Exercise invalid signature/token, expired or unsafe media, lost Make connection,
+   timeout, `429`, and CleanOps outage in the controlled sandbox. Confirm visible Make
+   retries/incomplete executions, no false `202`, bounded worker attempts, failed evidence
+   reason and a manual retry path. Record latency, loss, credits, actual provider charges,
+   and recovery time. Never simulate a live outage without a rollback window.
+6. Decide the existing-group path only after a consented group test produces real payload
+   identifiers and a current provider eligibility review. Otherwise document the
+   supervisor-forward or PWA fallback; the official dedicated-number test does not prove
+   group capture.
+
+## Server setup and safe recovery
+
+For the Make path, keep the scoped Make ingress credential in Make and Vercel server
+settings. Add `WHATSAPP_ACCESS_TOKEN` from an authorized Meta system user to Vercel
+**server-only production** settings; `WHATSAPP_GRAPH_VERSION` is already pinned. Keep
+`CRON_SECRET` server-only. Redeploy the reviewed main commit after setting the token.
+`GET /api/internal/whatsapp/worker` then authenticates with `Authorization: Bearer`
+using `CRON_SECRET` (or a separate 32-character worker token) and drains inbound jobs
+only; it does not send replies. Do not use the existing POST worker for an intake-only
+UAT because it also claims one outbound item. Run `npm run whatsapp:readiness` when the
+Meta app, phone permissions and token are configured. For direct Meta webhooks, add the
+app secret and verification token, verify signature/subscription, then enable separately.
+
+No credential value belongs in source, test artifacts, PR text or chat. If the token
+cannot be issued by the account that owns the number, keep the jobs pending and resolve
+app/business access first; do not borrow the Make partner's credential.
+
+## Release gate
+
+Do not close #37 until real text **and photo** have completed normalization and private
+evidence hash verification, duplicates and failure recovery have been observed, the
+unsupported-event gap is resolved, and the existing-group decision is recorded. The
+current branch's local checks prove only the new worker code: typecheck, lint, 144
+application tests and production build passed. No hosted worker, Meta media, or group
+claim follows from those local results.
