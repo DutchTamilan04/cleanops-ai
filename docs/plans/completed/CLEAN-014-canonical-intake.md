@@ -46,8 +46,9 @@ separate hosted query confirmed complete synthetic cleanup. Four focused unit
 files passed 14/14 tests. The generic intent/finance handoff matrix had
 already passed in local PostgreSQL and CI.
 
-Parent #27 can be evaluated for closure after this evidence is reviewed. The
-simulator remains disabled on production by design, and this run did not
+The recorded acceptance is complete, and parent #27 is authorized for closure
+after the evidence PR merges. The simulator remains disabled on production by
+design, and this run did not
 exercise the production signed route or cause a hosted database outage. Real
 Meta/Make, phone image transfer and existing-group eligibility belong to #37
 and need separate authorized sandbox evidence. One isolated media-prepare

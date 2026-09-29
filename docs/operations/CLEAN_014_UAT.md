@@ -170,10 +170,10 @@ At 03:16:28 UTC, Vercel runtime logs showed
 `GET /api/internal/integrations/worker` returning 200 on the same production
 deployment; no manual call was made in that window, so this is consistent with
 the scheduled recovery run. [Issue #27's evidence comment](https://github.com/niru2015/cleanops-ai/issues/27#issuecomment-5882843601)
-tracks the production browser replay. Parent #27 still needs a recorded
-same-logical-event comparison across simulator, app form and adapter, plus the
-remaining hosted negative/recovery cases before closure. Real phone, Meta/Make
-delivery and existing-group eligibility belong to #37.
+tracks the production browser replay. The three-source comparison and
+negative/recovery cases were subsequently completed in the execution record
+below. Real phone, Meta/Make delivery and existing-group eligibility belong
+to #37.
 
 ## Dated execution record: three-source and recovery UAT, 2026-09-29 UTC
 
