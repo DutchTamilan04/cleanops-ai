@@ -1431,26 +1431,51 @@ a:focus-visible {
 
 .equipmentIssue { margin: 0 0 18px; font-size: var(--text-body); }
 
-/* Operations casino portfolio on UX system V2: summary tiles, casino cards, equipment readiness. */
+/* Operations casino portfolio: Command deck (#188, design board Round 4 A). Tokens only. */
 .sitePortfolio { display: grid; gap: var(--v2-space-5); padding: 34px; }
+.sitePortfolio > .eyebrow { margin: 0; }
+.deckBand { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--v2-space-6) var(--v2-space-8); padding: var(--v2-space-6) var(--v2-space-8); border-radius: var(--radius-2xl); background: var(--brand-navy); color: var(--ink-on-brand); }
+.deckBand-lead { display: flex; align-items: center; gap: var(--v2-space-6); min-width: 0; }
+.deckBand-lead h1 { margin: 0 0 var(--v2-space-2); font-family: var(--font-display); font-size: var(--text-page-title); line-height: 1.25; font-weight: 600; color: var(--ink-on-brand); }
+.deckBand-lead p { max-width: 380px; margin: 0; color: var(--ink-on-navy); font-size: var(--text-body); line-height: 1.5; }
+.deckBand .deckRing-value strong { color: var(--ink-on-brand); }
+.deckBand .deckRing-value small { color: var(--ink-on-navy-soft); }
+.deckBand-figures { display: grid; grid-template-columns: repeat(4, auto); gap: var(--v2-space-6); margin: 0; }
+.deckBand-figures div { display: flex; flex-direction: column; justify-content: flex-start; gap: var(--v2-space-1); padding-left: var(--v2-space-5); border-left: 1px solid rgb(255 255 255 / 18%); }
+.deckBand-figures dd { order: -1; margin: 0; font-family: var(--font-display); font-size: var(--text-kpi-lg); line-height: 1.1; font-weight: 600; color: var(--ink-on-brand); font-variant-numeric: tabular-nums; }
+.deckBand-figures dt { color: var(--ink-on-navy-soft); font-size: var(--text-caption); font-weight: 600; }
+
+.deckRing { position: relative; flex: 0 0 auto; }
+.deckRing svg { display: block; }
+.deckRing-value { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; }
+.deckRing-value strong { font-family: var(--font-display); font-size: var(--text-section-title); line-height: 1; font-weight: 600; color: var(--ink); }
+.deckRing-value small { margin-top: 3px; color: var(--ink-muted); font-size: var(--text-badge); font-weight: 600; }
+.deckBand .deckRing-value strong { font-size: var(--text-kpi-md); }
+
 .casinoGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--v2-space-5); align-items: start; }
-.casinoCard { position: relative; display: grid; gap: var(--v2-space-4); min-width: 0; overflow: hidden; padding: var(--v2-space-6); border: 1px solid var(--v2-border); border-radius: var(--radius-xl); background: var(--v2-surface); box-shadow: var(--shadow-raised); }
-.casinoCard::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 4px; background: var(--brand-navy); }
-.casinoCard-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--v2-space-3); }
-.casinoCard-head .eyebrow { margin: 0 0 4px; }
-.casinoCard-head h2 { margin: 0; font-family: var(--font-display); font-size: var(--text-section-title); line-height: 26px; font-weight: 600; color: var(--brand-navy); }
-.casinoCard-head .ui-statusBadge { flex: 0 0 auto; }
-.casinoStats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--v2-space-2); margin: 0; }
-.casinoStat { display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "icon value" "label label"; align-items: center; gap: var(--v2-space-2); min-width: 0; padding: var(--v2-space-3); border-radius: var(--radius-lg); background: var(--v2-canvas); }
-.casinoStat-icon { grid-area: icon; width: 32px; height: 32px; padding: 6px; border-radius: var(--radius-md); background: var(--status-info-bg); color: var(--brand-blue); }
-.casinoStat dd { grid-area: value; margin: 0; font-family: var(--font-display); font-size: var(--text-kpi-md); line-height: 1.1; font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
-.casinoStat dt { grid-area: label; color: var(--ink-muted); font-size: var(--text-badge); font-weight: 600; line-height: 16px; }
+.deckCard { display: grid; gap: var(--v2-space-4); min-width: 0; padding: var(--v2-space-6); border: 1px solid var(--v2-border); border-radius: var(--radius-2xl); background: var(--v2-surface); }
+.deckCard-head { display: flex; align-items: center; gap: var(--v2-space-5); }
+.deckCard-title { display: grid; justify-items: start; gap: 6px; min-width: 0; }
+.deckCard-title .eyebrow { margin: 0; }
+.deckCard-title h2 { margin: 0; font-family: var(--font-display); font-size: var(--text-section-title); line-height: 26px; font-weight: 600; color: var(--brand-navy); }
+.deckStats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--v2-space-3); margin: 0; padding: var(--v2-space-4) 0; border-top: 1px solid var(--v2-border); border-bottom: 1px solid var(--v2-border); }
+.deckStat { display: flex; flex-direction: column; justify-content: flex-start; gap: 2px; min-width: 0; }
+.deckStat dd { order: -1; margin: 0; font-family: var(--font-display); font-size: var(--text-kpi-md); line-height: 1.1; font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
+.deckStat dt { color: var(--ink-muted); font-size: var(--text-badge); font-weight: 600; }
+
+.deckAction { display: flex; align-items: center; justify-content: space-between; gap: var(--v2-space-3); min-height: 56px; padding: var(--v2-space-3) var(--v2-space-4); border-radius: var(--radius-lg); background: var(--v2-canvas); color: var(--ink); text-decoration: none; font-size: var(--text-label); }
+.deckAction:hover { background: var(--v2-surface-muted); }
+.deckAction > span[aria-hidden] { color: var(--brand-blue); font-weight: 700; }
+.deckAction-text { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px var(--v2-space-2); min-width: 0; }
+.deckAction-kicker { width: 100%; color: var(--ink-muted); font-size: var(--text-badge); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+.deckAction strong { font-weight: 700; }
+.deckAction-danger .deckAction-text > span:last-child { color: var(--status-danger-fg); font-weight: 700; }
+.deckAction-pending .deckAction-text > span:last-child { color: var(--status-pending-fg); font-weight: 700; }
+.deckAction-success .deckAction-text > span:last-child { color: var(--status-success-fg); font-weight: 600; }
+.deckEmpty { margin: 0; color: var(--ink-muted); font-size: var(--text-caption); }
+
 .casinoAreas { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
 .casinoAreas li { padding: 4px 10px; border-radius: var(--radius-pill); background: var(--v2-surface-muted); color: var(--ink-secondary); font-size: var(--text-caption); font-weight: 600; }
-.casinoEquipment { display: grid; gap: var(--v2-space-3); padding-top: var(--v2-space-4); border-top: 1px solid var(--v2-border); }
-.casinoEquipment-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--v2-space-3); }
-.casinoEquipment-head h3 { margin: 0; font-family: var(--font-display); font-size: var(--text-body); font-weight: 600; color: var(--ink); }
-.casinoEquipment-head span { color: var(--ink-muted); font-size: var(--text-caption); }
 .readiness { display: grid; gap: var(--v2-space-2); }
 .readiness-bar { display: flex; gap: 3px; height: 10px; overflow: hidden; border-radius: var(--radius-pill); background: var(--v2-surface-muted); }
 .readiness-segment { min-width: 6px; }
@@ -1462,6 +1487,11 @@ a:focus-visible {
 .readiness-maintenance { background: var(--prototype-dot); }
 .readiness-out_of_service { background: var(--status-danger-border); }
 .readiness-other { background: var(--planned-border); }
+
+.deckRegister { border-top: 1px solid var(--v2-border); padding-top: var(--v2-space-3); }
+.deckRegister > summary { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--v2-space-2); min-height: 44px; cursor: pointer; color: var(--brand-blue); font-size: var(--text-label); font-weight: 700; }
+.deckRegister-count { color: var(--ink-muted); font-size: var(--text-caption); font-weight: 600; }
+.deckRegister[open] > summary { margin-bottom: var(--v2-space-2); }
 .assetRows { display: grid; margin: 0; padding: 0; list-style: none; }
 .assetRow { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) auto; align-items: center; gap: var(--v2-space-3); padding: var(--v2-space-3) 0; border-top: 1px solid var(--v2-border); }
 .assetRow:first-child { border-top: 0; }
@@ -1473,22 +1503,21 @@ a:focus-visible {
 .assetRow-meta .assetRow-due { overflow-wrap: normal; }
 .assetRow-meta .assetRow-due-pending { color: var(--status-pending-fg); font-weight: 700; }
 .assetRow-meta .assetRow-due-danger { color: var(--status-danger-fg); font-weight: 700; }
-.casinoIssues { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.casinoIssues { display: grid; gap: 6px; margin: var(--v2-space-2) 0 0; padding: 0; list-style: none; }
 .casinoIssues li { display: flex; align-items: center; justify-content: space-between; gap: var(--v2-space-2); padding: var(--v2-space-2) var(--v2-space-3); border-radius: var(--radius-md); background: var(--status-pending-bg); color: var(--status-pending-fg); font-size: var(--text-caption); font-weight: 600; }
-.casinoEmpty { margin: 0; color: var(--ink-muted); font-size: var(--text-caption); }
-.casinoCard-foot { padding-top: var(--v2-space-3); border-top: 1px solid var(--v2-border); }
-.casinoCard-foot a { color: var(--brand-blue); font-size: var(--text-label); font-weight: 700; text-decoration: none; }
-.casinoCard-foot a:hover { text-decoration: underline; }
 
 @media (max-width: 1199px) {
   .casinoGrid { grid-template-columns: minmax(0, 1fr); }
+  .deckBand-figures { grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; }
 }
 
 @media (max-width: 640px) {
   .sitePortfolio { padding: 22px 16px; }
-  .casinoCard { padding: var(--v2-space-4); }
-  .casinoCard-head { flex-direction: column; }
-  .casinoStats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .deckBand { padding: var(--v2-space-5); }
+  .deckBand-lead { flex-direction: column; align-items: flex-start; }
+  .deckCard { padding: var(--v2-space-4); }
+  .deckCard-head { align-items: flex-start; }
+  .deckStats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .assetRow { grid-template-columns: minmax(0, 1fr) auto; }
   .assetRow-meta { grid-column: 1 / -1; grid-row: 2; }
 }

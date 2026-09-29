@@ -1,11 +1,15 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import type { SitePortfolio as SitePortfolioData } from "@/integrations/operations/supabase-site-portfolio";
-import { KpiCard, KpiCardGrid, StatusBadge } from "@/components/ui";
+import { StatusBadge } from "@/components/ui";
 import { assetConditionLabel, assetStatusLabel, readable } from "@/config/equipment-labels";
 
+// #188: Operations "Command deck" (design board Round 4, direction A). Presentation only: every figure
+// comes from the site portfolio the page already loads.
+
 type Site = SitePortfolioData["sites"][number];
-type Tone = "success" | "pending" | "danger" | "neutral" | "info";
+type Asset = Site["equipment"][number];
+type Tone = "success" | "pending" | "danger" | "neutral";
 
 const DAY = 24 * 60 * 60 * 1000;
 const CLOSED_REPORTS = new Set(["resolved", "closed", "returned_to_service"]);
@@ -15,131 +19,173 @@ const READINESS = [
   { state: "maintenance", label: "In maintenance" },
   { state: "out_of_service", label: "Out of service" },
 ] as const;
+const TONE_COLOR: Record<Tone, string> = {
+  success: "var(--status-success-fg)",
+  pending: "var(--prototype-dot)",
+  danger: "var(--status-danger-border)",
+  neutral: "var(--planned-border)",
+};
 
 /** Today's date for service due-dates; kept out of render so the component stays pure. */
 function serviceClock(now = new Date()) {
-  return { today: now.toISOString().slice(0, 10), todayMs: Date.parse(now.toISOString().slice(0, 10)) };
+  return { todayMs: Date.parse(now.toISOString().slice(0, 10)) };
 }
+type Clock = ReturnType<typeof serviceClock>;
 
-function serviceDue(date: string | null, clock: ReturnType<typeof serviceClock>): { label: string; tone?: Tone } {
+const prettyDate = (date: string) =>
+  new Date(`${date}T00:00:00Z`).toLocaleDateString("en-CA", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
+const daysUntil = (date: string, clock: Clock) => Math.round((Date.parse(date) - clock.todayMs) / DAY);
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
+const ready = (site: Site) => site.equipment.filter((a) => a.state === "available" || a.state === "in_use").length;
+const openReports = (site: Site) => site.equipmentReports.filter((r) => !CLOSED_REPORTS.has(r.state));
+
+function serviceDue(date: string | null, clock: Clock): { label: string; tone?: Tone } {
   if (!date) return { label: "No service scheduled" };
-  const days = Math.round((Date.parse(date) - clock.todayMs) / DAY);
-  if (days < 0) return { label: `Service overdue by ${-days} ${-days === 1 ? "day" : "days"}`, tone: "danger" };
+  const days = daysUntil(date, clock);
+  if (days < 0) return { label: `Service overdue by ${plural(-days, "day")}`, tone: "danger" };
   if (days === 0) return { label: "Service due today", tone: "pending" };
-  if (days <= 30) return { label: `Service due in ${days} ${days === 1 ? "day" : "days"}`, tone: "pending" };
-  const pretty = new Date(`${date}T00:00:00Z`).toLocaleDateString("en-CA", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
-  return { label: `Next service ${pretty}` };
+  if (days <= 30) return { label: `Service due in ${plural(days, "day")}`, tone: "pending" };
+  return { label: `Next service ${prettyDate(date)}` };
 }
 
 function siteHealth(site: Site): { label: string; tone: Tone } {
-  const out = site.equipment.filter((asset) => asset.state === "out_of_service").length;
-  const attention = site.equipment.filter((asset) => asset.state === "maintenance").length
-    + site.equipmentReports.filter((report) => !CLOSED_REPORTS.has(report.state)).length;
+  const out = site.equipment.filter((a) => a.state === "out_of_service").length;
+  const attention = site.equipment.filter((a) => a.state === "maintenance").length + openReports(site).length;
   if (out) return { label: `${out} out of service`, tone: "danger" };
   if (attention) return { label: `${attention} ${attention === 1 ? "item needs" : "items need"} attention`, tone: "pending" };
   if (!site.equipment.length) return { label: "No equipment recorded", tone: "neutral" };
   return { label: "All equipment ready", tone: "success" };
 }
 
-function StatIcon({ name }: { name: "areas" | "tasks" | "records" | "workers" }) {
-  const common = { fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="casinoStat-icon" {...common}>
-      {name === "areas" && <><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z" /><circle cx="12" cy="10" r="2.4" /></>}
-      {name === "tasks" && <><rect x="5" y="4" width="14" height="17" rx="2" /><path d="M9 4h6v3H9zM9 12l2 2 4-4M9 17h6" /></>}
-      {name === "records" && <><path d="M4 20V10h4v10M10 20V4h4v16M16 20v-7h4v7M2 20h20" /></>}
-      {name === "workers" && <><circle cx="9" cy="8" r="3.2" /><path d="M3 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5" /><path d="M16 5.2a3 3 0 0 1 0 5.6M18 14.8c1.9.6 3 2.4 3 5.2" /></>}
-    </svg>
-  );
+/** The single most urgent equipment action for a casino, if any. */
+function nextAction(site: Site, clock: Clock): { title: string; detail: string; tone: Tone; href: string } | null {
+  const find = (state: string) => site.equipment.find((a) => a.state === state);
+  const out = find("out_of_service");
+  if (out) return { title: out.type, detail: "Out of service", tone: "danger", href: `/equipment/${out.id}` };
+  const maintenance = find("maintenance");
+  if (maintenance) return { title: maintenance.type, detail: "In maintenance", tone: "pending", href: `/equipment/${maintenance.id}` };
+  const scheduled = site.equipment.filter((a): a is Asset & { nextServiceAt: string } => Boolean(a.nextServiceAt))
+    .sort((a, b) => a.nextServiceAt.localeCompare(b.nextServiceAt))[0];
+  if (scheduled && daysUntil(scheduled.nextServiceAt, clock) <= 30) {
+    const due = serviceDue(scheduled.nextServiceAt, clock);
+    return { title: scheduled.type, detail: due.label, tone: due.tone ?? "pending", href: `/equipment/${scheduled.id}` };
+  }
+  const report = openReports(site)[0];
+  if (report) return { title: report.label, detail: `Issue ${readable(report.state).toLowerCase()}`, tone: "pending", href: "/equipment" };
+  if (scheduled) return { title: scheduled.type, detail: `Next service ${prettyDate(scheduled.nextServiceAt)}`, tone: "success", href: `/equipment/${scheduled.id}` };
+  return null;
 }
 
-function Stat({ icon, label, value }: { icon: Parameters<typeof StatIcon>[0]["name"]; label: string; value: ReactNode }) {
-  return <div className="casinoStat"><StatIcon name={icon} /><dt>{label}</dt><dd>{value}</dd></div>;
+function Ring({ value, total, size, stroke, color, track, caption, label }: {
+  value: number; total: number; size: number; stroke: number; color: string; track: string; caption: string; label: string;
+}) {
+  const r = (size - stroke) / 2;
+  const circumference = 2 * Math.PI * r;
+  const share = total ? value / total : 0;
+  return (
+    <div className="deckRing" style={{ width: size, height: size }} role="img" aria-label={label}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden="true">
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={track} strokeWidth={stroke} />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={stroke} strokeLinecap="round"
+          strokeDasharray={`${circumference * share} ${circumference}`} transform={`rotate(-90 ${size / 2} ${size / 2})`} />
+      </svg>
+      <span className="deckRing-value" aria-hidden="true">
+        <strong>{total ? `${Math.round(share * 100)}%` : "—"}</strong>
+        <small>{caption}</small>
+      </span>
+    </div>
+  );
 }
 
 function ReadinessBar({ site }: { site: Site }) {
   const total = site.equipment.length;
-  const counts = READINESS.map((entry) => ({ ...entry, count: site.equipment.filter((asset) => asset.state === entry.state).length }));
+  const counts = READINESS.map((entry) => ({ ...entry, count: site.equipment.filter((a) => a.state === entry.state).length }));
   const other = total - counts.reduce((sum, entry) => sum + entry.count, 0);
   const parts = [...counts, { state: "other", label: "Other", count: other }].filter((entry) => entry.count > 0);
-  const summary = parts.map((entry) => `${entry.count} ${entry.label.toLowerCase()}`).join(", ");
   return (
     <div className="readiness">
-      <div className="readiness-bar" role="img" aria-label={`Equipment readiness: ${summary}`}>
-        {parts.map((entry) => <span key={entry.state} className={`readiness-segment readiness-${entry.state}`} style={{ flexGrow: entry.count }} />)}
+      <div className="readiness-bar" role="img" aria-label={`Equipment readiness: ${parts.map((p) => `${p.count} ${p.label.toLowerCase()}`).join(", ")}`}>
+        {parts.map((p) => <span key={p.state} className={`readiness-segment readiness-${p.state}`} style={{ flexGrow: p.count }} />)}
       </div>
       <ul className="readiness-legend" aria-hidden="true">
-        {parts.map((entry) => <li key={entry.state}><span className={`readiness-dot readiness-${entry.state}`} />{entry.count} {entry.label.toLowerCase()}</li>)}
+        {parts.map((p) => <li key={p.state}><span className={`readiness-dot readiness-${p.state}`} />{p.count} {p.label.toLowerCase()}</li>)}
       </ul>
     </div>
   );
 }
 
-function CasinoCard({ site, clock }: { site: Site; clock: ReturnType<typeof serviceClock> }) {
+function Stat({ value, label }: { value: ReactNode; label: string }) {
+  return <div className="deckStat"><dt>{label}</dt><dd>{value}</dd></div>;
+}
+
+function CasinoCard({ site, clock }: { site: Site; clock: Clock }) {
   const health = siteHealth(site);
-  const openReports = site.equipmentReports.filter((report) => !CLOSED_REPORTS.has(report.state));
+  const reports = openReports(site);
+  const action = nextAction(site, clock);
+  const readyCount = ready(site);
   return (
-    <article className="casinoCard" aria-labelledby={`casino-${site.id}`}>
-      <header className="casinoCard-head">
-        <div>
+    <article className="deckCard" aria-labelledby={`casino-${site.id}`}>
+      <header className="deckCard-head">
+        <Ring value={readyCount} total={site.equipment.length} size={92} stroke={10} color={TONE_COLOR[health.tone]}
+          track="var(--v2-surface-muted)" caption="ready" label={`${readyCount} of ${site.equipment.length} machines ready`} />
+        <div className="deckCard-title">
           <p className="eyebrow">{site.city ?? "British Columbia"}</p>
           <h2 id={`casino-${site.id}`}>{site.name}</h2>
+          <StatusBadge tone={health.tone}>{health.label}</StatusBadge>
         </div>
-        <StatusBadge tone={health.tone}>{health.label}</StatusBadge>
       </header>
 
-      <dl className="casinoStats">
-        <Stat icon="areas" label="Areas" value={site.zones.length} />
-        <Stat icon="tasks" label="Active tasks" value={site.activeTasks} />
-        <Stat icon="records" label="Task records" value={site.taskRuns} />
-        <Stat icon="workers" label="Eligible workers" value={site.workers} />
+      <dl className="deckStats">
+        <Stat value={site.zones.length} label="Areas" />
+        <Stat value={site.activeTasks} label="Active tasks" />
+        <Stat value={site.workers} label="Eligible workers" />
+        <Stat value={reports.length} label="Open issues" />
       </dl>
+
+      {site.equipment.length ? <ReadinessBar site={site} /> : null}
+
+      {action ? (
+        <Link href={action.href} className={`deckAction deckAction-${action.tone}`}>
+          <span className="deckAction-text"><span className="deckAction-kicker">Next up</span><strong>{action.title}</strong><span>{action.detail}</span></span>
+          <span aria-hidden="true">→</span>
+        </Link>
+      ) : <p className="deckEmpty">No equipment actions due.</p>}
 
       {site.zones.length ? (
         <ul className="casinoAreas" aria-label={`Areas at ${site.name}`}>
           {site.zones.map((zone) => <li key={zone.id}>{zone.name}</li>)}
         </ul>
-      ) : <p className="casinoEmpty">No areas recorded yet.</p>}
+      ) : null}
 
-      <section className="casinoEquipment" aria-labelledby={`casino-${site.id}-equipment`}>
-        <div className="casinoEquipment-head">
-          <h3 id={`casino-${site.id}-equipment`}>Equipment register</h3>
-          <span>{site.equipment.length} {site.equipment.length === 1 ? "asset" : "assets"} · {openReports.length} open {openReports.length === 1 ? "issue" : "issues"}</span>
-        </div>
+      <details className="deckRegister">
+        <summary><span>Equipment register</span><span className="deckRegister-count">{plural(site.equipment.length, "asset")} · {site.taskRuns} task records</span></summary>
         {site.equipment.length ? (
-          <>
-            <ReadinessBar site={site} />
-            <ul className="assetRows">
-              {site.equipment.map((asset) => {
-                const status = assetStatusLabel(asset.state);
-                const due = serviceDue(asset.nextServiceAt, clock);
-                return (
-                  <li key={asset.id} className="assetRow">
-                    <div className="assetRow-main">
-                      <strong>{asset.type}</strong>
-                      <span><Link href={`/equipment/${asset.id}`}>{asset.assetTag}</Link>{asset.model ? ` · ${asset.manufacturer ?? ""} ${asset.model}`.replace("  ", " ") : ""}</span>
-                    </div>
-                    <div className="assetRow-meta">
-                      <span className={due.tone ? `assetRow-due assetRow-due-${due.tone}` : "assetRow-due"}>{due.label}</span>
-                      <span>Condition: {assetConditionLabel(asset.condition).label}</span>
-                    </div>
-                    <StatusBadge tone={status.tone}>{status.label}</StatusBadge>
-                  </li>
-                );
-              })}
-            </ul>
-          </>
-        ) : <p className="casinoEmpty">No equipment assets recorded.</p>}
-        {openReports.length ? (
+          <ul className="assetRows">
+            {site.equipment.map((asset) => {
+              const status = assetStatusLabel(asset.state);
+              const due = serviceDue(asset.nextServiceAt, clock);
+              return (
+                <li key={asset.id} className="assetRow">
+                  <div className="assetRow-main">
+                    <strong>{asset.type}</strong>
+                    <span><Link href={`/equipment/${asset.id}`}>{asset.assetTag}</Link>{asset.model ? ` · ${[asset.manufacturer, asset.model].filter(Boolean).join(" ")}` : ""}</span>
+                  </div>
+                  <div className="assetRow-meta">
+                    <span className={due.tone ? `assetRow-due assetRow-due-${due.tone}` : "assetRow-due"}>{due.label}</span>
+                    <span>Condition: {assetConditionLabel(asset.condition).label}</span>
+                  </div>
+                  <StatusBadge tone={status.tone}>{status.label}</StatusBadge>
+                </li>
+              );
+            })}
+          </ul>
+        ) : <p className="deckEmpty">No equipment assets recorded.</p>}
+        {reports.length ? (
           <ul className="casinoIssues" aria-label={`Open equipment issues at ${site.name}`}>
-            {openReports.map((report) => <li key={report.id}><span>{report.label}</span><StatusBadge tone="pending">{readable(report.state)}</StatusBadge></li>)}
+            {reports.map((report) => <li key={report.id}><span>{report.label}</span><StatusBadge tone="pending">{readable(report.state)}</StatusBadge></li>)}
           </ul>
         ) : null}
-      </section>
-
-      <footer className="casinoCard-foot">
-        <Link href="/equipment">Open equipment care <span aria-hidden="true">→</span></Link>
-      </footer>
+      </details>
     </article>
   );
 }
@@ -148,27 +194,35 @@ export function SitePortfolio({ portfolio }: { portfolio: SitePortfolioData }) {
   const clock = serviceClock();
   const sites = portfolio.sites;
   const sum = (pick: (site: Site) => number) => sites.reduce((total, site) => total + pick(site), 0);
-  const equipmentCount = sum((site) => site.equipment.length);
-  const attention = sum((site) => site.equipment.filter((asset) => asset.state === "maintenance" || asset.state === "out_of_service").length);
-  const cities = [...new Set(sites.map((site) => site.city).filter(Boolean))];
+  const equipment = sum((site) => site.equipment.length);
+  const readyTotal = sum(ready);
+  const needing = sites.filter((site) => ["pending", "danger"].includes(siteHealth(site).tone)).length;
+  const headline = !sites.length ? "No casinos are assigned to this account yet."
+    : needing === 0 ? `All ${plural(sites.length, "casino")} have their equipment ready.`
+      : `${needing} of ${plural(sites.length, "casino")} ${needing === 1 ? "needs" : "need"} equipment attention.`;
+  const figures = [
+    { value: equipment ? `${readyTotal}/${equipment}` : "—", label: "Equipment ready" },
+    { value: sum((site) => site.workers), label: "Eligible workers" },
+    { value: sum((site) => site.zones.length), label: "Areas covered" },
+    { value: sum((site) => openReports(site).length), label: "Open equipment issues" },
+  ];
   return (
     <section className="sitePortfolio" aria-labelledby="site-portfolio-title">
-      <header className="financeHeader">
-        <div>
-          <p className="eyebrow">Casino portfolio</p>
-          <h1 id="site-portfolio-title">Assigned casinos</h1>
-          <p>Every casino and equipment record available to this account. All operational content is synthetic demo data.</p>
+      <p className="eyebrow">Operations · casino portfolio</p>
+      <div className="deckBand">
+        <div className="deckBand-lead">
+          <Ring value={readyTotal} total={equipment} size={124} stroke={12} color="var(--status-success-bg)"
+            track="rgb(255 255 255 / 14%)" caption="fleet ready" label={`${readyTotal} of ${equipment} machines ready across all casinos`} />
+          <div>
+            <h1 id="site-portfolio-title">Assigned casinos</h1>
+            <p>{headline}</p>
+          </div>
         </div>
-      </header>
-      <KpiCardGrid>
-        <KpiCard variant="hero" label="Casinos" value={sites.length} help={cities.length ? cities.join(" · ") : "Assigned to this account"} />
-        <KpiCard label="Areas" value={sum((site) => site.zones.length)} help="Zones across all casinos" />
-        <KpiCard label="Eligible workers" value={sum((site) => site.workers)} help="With an active site grant" />
-        <KpiCard label="Equipment assets" value={equipmentCount} help={!equipmentCount ? "None recorded yet" : attention ? `${attention} in maintenance or out of service` : "All ready for use"} />
-      </KpiCardGrid>
-      {sites.length ? (
-        <div className="casinoGrid">{sites.map((site) => <CasinoCard key={site.id} site={site} clock={clock} />)}</div>
-      ) : <p className="casinoEmpty">No casinos are assigned to this account yet.</p>}
+        <dl className="deckBand-figures">
+          {figures.map((figure) => <div key={figure.label}><dt>{figure.label}</dt><dd>{figure.value}</dd></div>)}
+        </dl>
+      </div>
+      {sites.length ? <div className="casinoGrid">{sites.map((site) => <CasinoCard key={site.id} site={site} clock={clock} />)}</div> : null}
     </section>
   );
 }
