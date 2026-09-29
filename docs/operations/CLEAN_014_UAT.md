@@ -150,10 +150,27 @@ are at `artifacts/tornado-demo/issue27-hosted-20260929-44bc167b/` in the
 operator workspace. Temporary account, event, message and draft counts were
 verified at zero after cleanup.
 
-The hosted replay injected normalized synthetic rows through the service client.
-It did not exercise signed HTTP ingress, provider media or real WhatsApp/Make
-delivery. At 03:16:28 UTC, Vercel runtime logs showed
+The production browser replay injected normalized synthetic rows through the
+service client. It did not exercise signed HTTP ingress or provider media. A
+separate controlled preview deployment, using the hosted database and a
+temporary branch-scoped adapter credential, then passed eight signed HTTP
+checks: scoped credential, forged-signature rejection, durable `202`, completed
+receipt job, identical-message replay deduplication, one pending finance draft
+with no expense claim, completed image job, and verified private image bytes.
+The safe result is at
+`artifacts/tornado-demo/issue27-signed-preview-20260929-edba7b36/result.json`
+in the operator workspace. The run removed its test account, credential,
+events, messages, draft and private image; all six checked row counts were
+zero. The five temporary preview environment variables and the test deployment
+were removed after the run. Production adapter keys and Meta/Make settings were
+unchanged. This is signed preview ingress with a hosted database, not a
+production-route or real-provider delivery test.
+
+At 03:16:28 UTC, Vercel runtime logs showed
 `GET /api/internal/integrations/worker` returning 200 on the same production
 deployment; no manual call was made in that window, so this is consistent with
 the scheduled recovery run. [Issue #27's evidence comment](https://github.com/niru2015/cleanops-ai/issues/27#issuecomment-5882843601)
-tracks the remaining signed transport proof.
+tracks the production browser replay. Parent #27 still needs a recorded
+same-logical-event comparison across simulator, app form and adapter, plus the
+remaining hosted negative/recovery cases before closure. Real phone, Meta/Make
+delivery and existing-group eligibility belong to #37.
