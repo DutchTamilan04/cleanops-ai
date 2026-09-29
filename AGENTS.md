@@ -5,6 +5,16 @@
 CleanOps AI structures cleaning operations for casinos and other 24/7 facilities.
 The repo includes the hosted role demo, mobile/evidence/review/reporting workflows, official WhatsApp/OpenAI adapters, and the CLEAN-027 normalized message + finance/inventory slice.
 
+## Multi-agent workflow
+
+This file remains the authoritative shared engineering policy. Agent-specific coordination and handoff rules live in:
+- [CLAUDE.md](CLAUDE.md) for Claude Code operating instructions;
+- [ENGINEERING_WORKFLOW](docs/ai/ENGINEERING_WORKFLOW.md) for roles, branches and release flow;
+- [TASK_RULES](docs/ai/TASK_RULES.md) for task ownership and completion rules;
+- [HANDOFF_TEMPLATE](docs/ai/HANDOFF_TEMPLATE.md) for implementation-ready engineering handoffs.
+
+Normal feature work targets `tornado-dev`. `main` is promoted intentionally after review, and `codex/ui-preview` is not the shared integration branch going forward. Claude Code and Codex must not work on the same branch simultaneously for substantial work.
+
 ## Load only what the task needs
 
 1. Read [docs/INDEX.md](docs/INDEX.md) and the assigned issue.
