@@ -8,7 +8,9 @@ test("supervisor closes the staffing gap from attendance records", async ({ page
   await page.goto("/operations");
   await expect(page).toHaveTitle("CleanOps");
   await expect(page.getByRole("heading", { name: "Assigned casinos" })).toBeVisible();
-  await expect(page.getByText("Equipment assets", { exact: true })).toBeVisible();
+  await expect(page.getByText("Equipment ready", { exact: true })).toBeVisible();
+  // #188: the per-casino equipment list sits in an expandable register.
+  await page.getByText("Equipment register", { exact: true }).first().click();
   await expect(page.getByText("Ride-on floor scrubber").first()).toBeVisible();
   await expect(page.getByRole("heading", { name: "Operations command" })).toBeVisible();
   await expect(page.getByText("40 / 42")).toBeVisible();
