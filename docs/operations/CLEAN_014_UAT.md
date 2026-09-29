@@ -174,3 +174,57 @@ tracks the production browser replay. Parent #27 still needs a recorded
 same-logical-event comparison across simulator, app form and adapter, plus the
 remaining hosted negative/recovery cases before closure. Real phone, Meta/Make
 delivery and existing-group eligibility belong to #37.
+
+## Dated execution record: three-source and recovery UAT, 2026-09-29 UTC
+
+Current `main` commit `f192241` was served by a local Next.js development
+server connected to hosted CleanOps Supabase. This was necessary because the
+simulator endpoint is deliberately disabled in production. Two temporary
+synthetic users (Cleaner and organization administrator), one mock account and
+one scoped signed-adapter account were used in the legacy demo organization at
+Grand Villa. The temporary server-only signing key and demo token were never
+placed in Vercel or the browser. This run did **not** call the production
+adapter route or receive Meta/Make traffic.
+
+The final run passed **24 of 24** checks. The same invented fuel-receipt text
+entered through the simulator HTTP route, the Cleaner `/mobile/expenses` form,
+and the signed event adapter HTTP route. Each created one **pending** Finance
+Inbox candidate in the same casino, labelled WhatsApp, App and Integration
+respectively. These are three separate source records representing an
+equivalent business scenario; app submission is not a provider-message replay.
+Two normalized transport messages remained linked to their source. No expense
+claim or posting was created. The Director view also showed a fourth separate
+Integration draft created for the lease-recovery test.
+
+| Group | Observed result |
+|---|---|
+| Authentication and scope | Unsigned, forged and stale requests returned `401`; an invalid schema returned `422`; a different source account under the valid key returned `403`. |
+| Durability and identity | Simulator and adapter returned `202`; jobs completed. A repeated nonce and changed body under the same message ID returned `409`. Two concurrent identical adapter deliveries returned the existing job as duplicate and produced one draft. |
+| Media recovery | The declared synthetic image staged as private evidence. Finalizing without an uploaded object returned visible `missing`; an explicit retry prepared a new private upload ticket. The earlier signed-preview run verified actual private image bytes and hash. |
+| Worker recovery | A scoped test job was given an expired lease. The protected worker reclaimed it, completed it on attempt 2, and created one pending draft. |
+| Finance safety | The three equivalent scenarios remained pending with no expense claim. Missing receipts were visibly flagged for human review. |
+
+The browser evidence is [Cleaner app submission](assets/issue27-final-uat/app-submission.png)
+and [Director Finance Inbox](assets/issue27-final-uat/director-finance-inbox.png).
+The [redacted check result](assets/issue27-final-uat/result.json) is stored
+with the screenshots. The original artifacts are in the operator workspace
+at `artifacts/tornado-demo/issue27-uat-f31eaf2e/`. After the test, the runner
+deleted its users, memberships, accounts, credentials, events, jobs, messages,
+evidence and drafts. A separate hosted SQL count returned zero matching users,
+accounts, credentials, events, messages, evidence and drafts; the queue returned
+to its pretest eight succeeded jobs with no pending or failed jobs.
+
+Two diagnostic runs were cleaned before the final pass. The first saw one
+`404` when preparing media immediately after a succeeded job; that response
+did not recur when the staged media row was checked before preparation. The
+second reached all domain checks but used an ambiguous browser heading
+selector. The final run used the page-level heading and passed. The isolated
+`404` is retained in the operator artifacts for a future reproducibility
+check; it is not evidence of a missing provider image.
+
+Four focused unit-test files then passed **14 of 14** tests, including
+durability-failure handling. We did not induce a hosted database outage or
+send a live historical backfill because either could affect unrelated users.
+The existing isolated database/CI contracts cover cross-transport order,
+worker failures and tenant separation. Real provider delivery, phone image
+transfer and existing-group eligibility remain the separate #37 acceptance.
