@@ -5,8 +5,10 @@ Paths below are relative to `docs/`. Follow linked security/integration details 
 
 | Task | Read | Canonical responsibility |
 |---|---|---|
+| Agent workflow / branch / deployment | [ENGINEERING_WORKFLOW](ai/ENGINEERING_WORKFLOW.md), [DEV_ENVIRONMENT](ai/DEV_ENVIRONMENT.md), [TASK_RULES](ai/TASK_RULES.md) | Agent roles, dev flow, repository boundary and handoff rules |
+| Finance priority / local backlog | [FINANCE_BACKLOG](ai/FINANCE_BACKLOG.md), [FINANCE_TRAINING](finance/README.md) | Current Finance MVP order after repository transfer |
 | Scope / feature acceptance | [PRODUCT](PRODUCT.md), [ROADMAP](plans/ROADMAP.md) | What and when |
-| Current open-issue audit | [ISSUE_REVALIDATION](plans/ISSUE_REVALIDATION_2026-09-28.md) | Main-branch evidence, closure candidates and next work |
+| Historical open-issue audit | [ISSUE_REVALIDATION](plans/ISSUE_REVALIDATION_2026-09-28.md) | Historical main-branch evidence and prior issue references; use local GitHub issues for current work |
 | Finance customer and operator training | [FINANCE_TRAINING](finance/README.md), [NEW_CUSTOMER_SETUP](finance/NEW_CUSTOMER_SETUP.md) | Role procedures and first-period runbook |
 | Business states / workflow | [DOMAIN](DOMAIN.md) | Terms, transitions, metrics |
 | Scaffold / boundaries | [ARCHITECTURE](ARCHITECTURE.md) | Stack, placement, execution |

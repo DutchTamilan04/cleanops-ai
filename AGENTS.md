@@ -1,6 +1,6 @@
 # CleanOps agent map
 
-> **Current Tornado priority:** Finance MVP. If assigned a finance/demo-data task, read **#61** first for the finance execution contract and **#28** for scenario-data rules. The assigned issue remains the bounded implementation contract; older roadmap prose must not override newer explicit issue decisions.
+> **Current Tornado priority:** Finance MVP. For finance work, read the local parent issue **#3** and [FINANCE_BACKLOG](docs/ai/FINANCE_BACKLOG.md). For deterministic demo/scenario rules, read [DATA_FACTORY](docs/demo/DATA_FACTORY.md). The assigned local issue remains the bounded implementation contract; historical issue numbers from the transferred repository are context only and must not be treated as current task IDs.
 
 CleanOps AI structures cleaning operations for casinos and other 24/7 facilities.
 The repo includes the hosted role demo, mobile/evidence/review/reporting workflows, official WhatsApp/OpenAI adapters, and the CLEAN-027 normalized message + finance/inventory slice.
@@ -11,7 +11,9 @@ This file remains the authoritative shared engineering policy. Agent-specific co
 - [CLAUDE.md](CLAUDE.md) for Claude Code operating instructions;
 - [ENGINEERING_WORKFLOW](docs/ai/ENGINEERING_WORKFLOW.md) for roles, branches and release flow;
 - [TASK_RULES](docs/ai/TASK_RULES.md) for task ownership and completion rules;
-- [HANDOFF_TEMPLATE](docs/ai/HANDOFF_TEMPLATE.md) for implementation-ready engineering handoffs.
+- [HANDOFF_TEMPLATE](docs/ai/HANDOFF_TEMPLATE.md) for implementation-ready engineering handoffs;
+- [DEV_ENVIRONMENT](docs/ai/DEV_ENVIRONMENT.md) for the development/production repository boundary and deployment flow;
+- [FINANCE_BACKLOG](docs/ai/FINANCE_BACKLOG.md) for the current Finance MVP work order after repository transfer.
 
 Normal feature work targets `tornado-dev`. `main` is promoted intentionally after review, and `codex/ui-preview` is not the shared integration branch going forward. Claude Code and Codex must not work on the same branch simultaneously for substantial work.
 
